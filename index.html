@@ -406,6 +406,7 @@ var Snd=(function(){
     setStation:function(k){ps=k;if(!musOn){musOn=true;applyMusic();}persist();init();refill();if(ctx){nextT=ctx.currentTime+0.1;nextSong();}},
     playSong:function(i){if(ps>4)return;if(!musOn){musOn=true;applyMusic();persist();}init();if(ctx){nextT=ctx.currentTime+0.1;bag=bag.filter(function(x,k){return k<bp||x!==i;});startSong(ps,i);}},
     skip:function(){if(!musOn){musOn=true;applyMusic();persist();}init();if(ctx){nextT=ctx.currentTime+0.1;nextSong();}},
+    sfx:function(){return sfxOn;},music:function(){return musOn;},
     toggleSfx:function(){sfxOn=!sfxOn;persist();init();if(sfxOn)play('tap');return sfxOn;},
     toggleMusic:function(){musOn=!musOn;persist();init();applyMusic();return musOn;},
     setNight:function(n){night=n;applyMusic();}
