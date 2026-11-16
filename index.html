@@ -449,6 +449,8 @@ function stocked(it){var k=CAT[it.type].kind;return k==='prod'||k==='direct';}
 function upSum(key){var s=0;UPS.forEach(function(u){if(S.ups[u.id]&&u[key])s+=u[key];});if(S.gacha)GACHA.forEach(function(g){if(S.gacha.got[g.id]&&g.key===key)s+=g.v;});return s;}
 function itemMult(l){return 1+0.35*(l-1);}
 function decorF(l){return 1+0.25*(l-1);}
+function uniq(type){var k=CAT[type].kind;return k==='prod'||k==='direct';}
+function owned(type){return S.items.some(function(i){return i.type===type;});}
 function costOf(type){var n=S.items.filter(function(i){return i.type===type;}).length;return Math.round(CAT[type].cost*Math.pow(1.4,n));}
 function upCost(it){return Math.max(50,Math.round(CAT[it.type].cost*0.85*Math.pow(1.6,it.l-1)));}
 function capOf(it){return Math.round((CAT[it.type].kind==='direct'?30:20)*(1+0.5*(it.l-1))*(1+upSum('cap')));}
@@ -2621,6 +2623,7 @@ function renderPlace(){
 function rowBuild(type){
   var c=CAT[type],cost=costOf(type);
   var info=c.d+((c.kind==='prod'||c.kind==='direct')?' · '+yen(c.price)+(type==='atm'?' par retrait':' par vente'):'');
+  if(uniq(type)&&owned(type))return '<div class="row"><div class="meta"><b>'+c.n+'</b><span>'+info+'</span></div><button class="btn" disabled style="opacity:.5">Déjà placé</button></div>';
   return '<div class="row"><div class="meta"><b>'+c.n+'</b><span>'+info+'</span></div><button class="btn" data-act="build" data-type="'+type+'" data-cost="'+cost+'">'+yen(cost)+'</button></div>';
 }
 function nextUnlockNote(){
@@ -2776,6 +2779,7 @@ function attemptPlace(x,z){
     return;
   }
   var cost=costOf(p.type);
+  if(uniq(p.type)&&owned(p.type)){toast('Un seul exemplaire possible.');placing=null;refreshHighlights();renderPlace();return;}
   if(S.money<cost){toast('Pas assez de yens.');return;}
   S.money-=cost;Snd.play('place');
   addItem(p.type,x,z,1,cost,p.r);
@@ -2845,6 +2849,7 @@ function handleAct(b){
   var a=b.getAttribute('data-act');
   if(a==='build'){
     var t=b.getAttribute('data-type'),cost=costOf(t);
+    if(uniq(t)&&owned(t)){toast('Un seul exemplaire possible.');return;}
     if(S.money<cost){toast('Pas assez de yens.');return;}
     startPlace(t);
   }else if(a==='up'){
