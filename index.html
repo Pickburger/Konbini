@@ -106,6 +106,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
       <button class="tab" data-tab="stock" id="tabStock">Stock</button>
       <button class="tab" data-tab="ups">Améliorer</button>
       <button class="tab" data-tab="staff">Équipe</button>
+      <button class="tab" data-tab="gacha">Gacha</button>
       <button class="tab" data-tab="shop">Magasin</button>
     </nav>
   </div>
@@ -224,6 +225,34 @@ var UPS=[
   {id:"world",n:"Magasin vedette du pays",d:"+80 % de clients",cost:3000000000,rank:14,traffic:.8},
   {id:"star",n:"Étoile du guide des konbini",d:"+100 % de dépenses",cost:10000000000,rank:15,spend:1}
 ];
+
+/* ---------- Gachapon : 50 améliorations aléatoires ---------- */
+var GACHA=(function(){
+  var L=[
+    ['Porte-bonheur en bois','traffic',.02],['Amulette omamori','traffic',.02],['Lanterne de papier','traffic',.03],['Éventail uchiwa','traffic',.02],
+    ['Carillon furin','traffic',.03],['Koinobori en soie','traffic',.03],['Chat doré','traffic',.04],['Tanuki farceur','traffic',.03],
+    ['Torii miniature','traffic',.04],['Lampion rouge','traffic',.02],['Grue en origami','traffic',.03],['Pièce porte-bonheur','traffic',.05],
+    ['Daruma exaucé','traffic',.05],['Enseigne néon rose','traffic',.04],
+    ['Tirelire grenouille','spend',.02],['Pièce de cinq yens','spend',.02],['Calculatrice dorée','spend',.03],['Gant de vendeur','spend',.02],
+    ['Sac cadeau','spend',.03],['Ruban promo','spend',.03],['Étiquette dorée','spend',.04],['Bento deluxe','spend',.03],
+    ['Ticket de loterie','spend',.04],['Cochon tirelire','spend',.03],['Billet de 10 000 ¥','spend',.05],['Lingot d\'or','spend',.05],
+    ['Carte premium','spend',.04],['Sceau hanko','spend',.02],
+    ['Scanner turbo','reg',.04],['Tapis roulant huilé','reg',.05],['Stylo magique','reg',.04],['Boulier ultra-rapide','reg',.05],
+    ['Caisse bien huilée','reg',.06],['Chaussures à roulettes','reg',.08],
+    ['Coupon de gros','bulk',.02],['Carnet de fournisseurs','bulk',.03],['Camion en solde','bulk',.02],['Contrat secret','bulk',.03],
+    ['Étagère renforcée','cap',.05],['Étiquettes malignes','cap',.05],['Boîte gigogne','cap',.08],['Entrepôt de poche','cap',.06],
+    ['Carton extensible','cap',.08],['Sac sans fond','cap',.10],
+    ['Tapis d\'accueil','maxc',1],['Cloche d\'entrée','maxc',2],['Porte automatique','maxc',2],
+    ['Baskets rapides','stk',.15],['Chariot motorisé','stk',.20],['Thé énergisant','stk',.15]
+  ];
+  return L.map(function(a,i){var o={id:'g'+i,n:a[0]};o[a[1]]=a[2];o.key=a[1];o.v=a[2];return o;});
+})();
+function gachaDesc(g){
+  var p=Math.round(g.v*100);
+  return g.key==='traffic'?'+'+p+' % de clients':g.key==='spend'?'+'+p+' % de dépenses':g.key==='reg'?'Caisses +'+p+' % plus rapides':
+    g.key==='bulk'?'-'+p+' % sur les commandes':g.key==='cap'?'+'+p+' % de capacité des rayons':g.key==='maxc'?'+'+g.v+' client'+(g.v>1?'s':'')+' en même temps':
+    '+'+p+' % de vitesse des réapprovisionneurs';
+}
 var EVENTS=[
   {n:"Heure de pointe",t:.9,s:0,dur:60},
   {n:"Groupe de touristes",t:.3,s:.4,dur:45},
@@ -238,9 +267,9 @@ var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 var FRONT=[[0,1],[1,0],[0,-1],[-1,0]];
 
 /* ---------- État ---------- */
-var S={money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[]};
+var S={money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}}};
 var W=TIERS[0].w, D=TIERS[0].d;
-var uid=0, occ=[], customers=[], staffActors=[], itemRoots=[];
+var stkMult=1, uid=0, occ=[], customers=[], staffActors=[], itemRoots=[];
 var placing=null, selected=null, tabOpen=null;
 var secEarn=0, evTimer=rnd(90,150), spawnAcc=0, simTime=0, emptyToast=0, autoAcc=0;
 var KEY='konbini-hoshi-v1';
@@ -256,17 +285,17 @@ function fmt(n){
 function yen(n){return '¥ '+fmt(n);}
 function rank(){var r=1;for(var i=0;i<RANKS.length;i++){if(S.served>=RANKS[i])r=i+1;}return r;}
 function maxLevel(){return Math.min(15,2+rank());}
-function maxCust(){return 12+3*S.tier;}
+function maxCust(){return 12+3*S.tier+upSum('maxc');}
 function live(){return S.items.filter(function(i){return !i.held;});}
 function ofKind(k){return live().filter(function(i){return CAT[i.type].kind===k;});}
 function ofType(t){return live().filter(function(i){return i.type===t;});}
 function stocked(it){var k=CAT[it.type].kind;return k==='prod'||k==='direct';}
-function upSum(key){var s=0;UPS.forEach(function(u){if(S.ups[u.id]&&u[key])s+=u[key];});return s;}
+function upSum(key){var s=0;UPS.forEach(function(u){if(S.ups[u.id]&&u[key])s+=u[key];});if(S.gacha)GACHA.forEach(function(g){if(S.gacha.got[g.id]&&g.key===key)s+=g.v;});return s;}
 function itemMult(l){return 1+0.35*(l-1);}
 function decorF(l){return 1+0.25*(l-1);}
 function costOf(type){var n=S.items.filter(function(i){return i.type===type;}).length;return Math.round(CAT[type].cost*Math.pow(1.4,n));}
 function upCost(it){return Math.max(50,Math.round(CAT[it.type].cost*0.85*Math.pow(1.6,it.l-1)));}
-function capOf(it){return Math.round((CAT[it.type].kind==='direct'?30:20)*(1+0.5*(it.l-1)));}
+function capOf(it){return Math.round((CAT[it.type].kind==='direct'?30:20)*(1+0.5*(it.l-1))*(1+upSum('cap')));}
 function visN(it){var s=CAT[it.type].slots;if(!s||it.stock<=0)return 0;return Math.min(s,Math.max(1,Math.ceil(it.stock/capOf(it)*s)));}
 function unitCost(t){return Math.max(1,Math.round(CAT[t].price*0.35*(1-Math.min(0.6,upSum('bulk')))));}
 function reserveCap(){return 100+50*rank();}
@@ -383,6 +412,7 @@ function updateGlow(){
   glowPool(W/2,D/2,W*1.15,D*1.15,glowSoft);
   glowPool(W/2+1,D+1.3,W+4,3.4,glowSoft);
   glowPool(DOORX+0.5,D+1.6,3.8,3.8,glowSoft);
+  glowPool(DOORX+3.6,D+2.1,2.6,2.6);
   if(S.ups.streetlights){
     [1.2,W/2+1,W-0.4].forEach(function(px){
       cyl(glowG,0.04,0.05,1.6,'#2b3a38',px,0,D+2.15,8);
@@ -1886,6 +1916,7 @@ function tree(g,x,z,r){
   m2.position.set(x+0.1*s,1.35*s,z);m2.scale.set(0.65*s,0.7*s,0.65*s);m2.castShadow=true;g.add(m2);
 }
 function buildShell(){
+  placeGacha();
   while(shell.children.length)shell.remove(shell.children[0]);
   var gr=new T.Mesh(new T.PlaneGeometry(200,200),grassMat);
   gr.rotation.x=-Math.PI/2;gr.position.set(W/2,-0.02,D/2);gr.receiveShadow=true;shell.add(gr);
@@ -1948,6 +1979,30 @@ var truck=(function(){
   g.visible=false;scene.add(g);return g;
 })();
 var truckX=-30, truckTimer=1.5, truckDelivered=true;
+
+
+/* ---------- Machine à gachapon devant le magasin ---------- */
+var gachaObj={type:'gacha',l:1,vis:12,useT:null},gachaBusy=false;
+var gachaRoot=new T.Group();scene.add(gachaRoot);
+var gachaModel=buildModel(gachaObj);gachaModel.scale.setScalar(1.3);gachaRoot.add(gachaModel);
+var gachaHint=new T.Mesh(new T.SphereGeometry(0.13,10,10),new T.MeshBasicMaterial({color:'#ffd23f'}));gachaHint.position.set(0,1.55,0);gachaRoot.add(gachaHint);
+var gachaSign=bx(gachaRoot,0.7,0.14,0.04,'#e94b4b',0,1.28,0.0);
+function placeGacha(){gachaRoot.position.set(DOORX+3.6,0.06,D+1.65);}
+function gachaPrice(){return Math.round(1000*Math.pow(1.5,S.gacha.n));}
+function pullGacha(){
+  if(gachaBusy)return;
+  var left=GACHA.filter(function(g){return !S.gacha.got[g.id];});
+  if(!left.length){toast('Collection complète !');return;}
+  var p=gachaPrice();
+  if(S.money<p){toast('Pas assez de yens.');return;}
+  S.money-=p;
+  var g=left[Math.floor(Math.random()*left.length)];
+  S.gacha.got[g.id]=true;S.gacha.n++;S.gacha.last=GACHA.indexOf(g);
+  stkMult=1+upSum('stk');
+  gachaObj.useT=simTime;gachaBusy=true;
+  save();renderSheet();
+  setTimeout(function(){gachaBusy=false;toast('Capsule : '+g.n+' ('+gachaDesc(g)+')');renderSheet();},1900);
+}
 
 /* ---------- Surbrillances et sélection ---------- */
 var hl=new T.Group();scene.add(hl);
@@ -2091,7 +2146,7 @@ function animActor(c,dt,moving){
 function moveActor(c,dt){
   var p=c.g.position,moving=false;
   if(c.path.length){
-    var t=c.path[0],dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz),step=c.speed*dt;
+    var t=c.path[0],dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz),step=c.speed*(c.kind==='staff'?stkMult:1)*dt;
     if(d<=step){
       p.x=t.x;p.z=t.z;c.path.shift();
       if(!c.path.length){var cb=c.onArrive;c.onArrive=null;if(cb)cb();}else moving=true;
@@ -2475,6 +2530,17 @@ function renderSheet(){
     h+='<div class="row"><div class="meta"><b>Réapprovisionneur ('+S.staff.stocker+'/5)</b><span>Il prend les articles de la réserve et remplit les rayons vides.</span></div>'+
       (S.staff.stocker>=5?'<div class="btn off lk">Complet</div>':'<button class="btn" data-act="hire" data-role="stocker" data-cost="'+sc+'">'+yen(sc)+'</button>')+'</div>';
     h+='<div class="note">Caisses installées : '+regs+'. Les employés se promènent dans le magasin.</div>';
+  }else if(tabOpen==='gacha'){
+    var gp=gachaPrice(),got=Object.keys(S.gacha.got).length,left=GACHA.length-got;
+    h+='<div class="h3">Gachapon devant le magasin</div>';
+    if(left>0){
+      h+='<div class="row"><div class="meta"><b>Capsule mystère</b><span>Contient une amélioration au hasard. Le prix augmente de 50 % à chaque capsule. ('+got+'/'+GACHA.length+' trouvées)</span></div><button class="btn" data-act="gacha" data-cost="'+gp+'">'+yen(gp)+'</button></div>';
+    }else h+='<div class="note">Collection complète : 50 améliorations sur 50 !</div>';
+    if(gachaBusy)h+='<div class="note">La capsule tombe… 🎁</div>';
+    else if(S.gacha.last!==undefined&&GACHA[S.gacha.last]){var lg=GACHA[S.gacha.last];h+='<div class="note"><b>Dernière capsule : '+lg.n+'</b><br>'+gachaDesc(lg)+'</div>';}
+    h+='<div class="h3">Ma collection ('+got+')</div>';
+    GACHA.forEach(function(g){if(S.gacha.got[g.id])h+='<div class="row"><div class="meta"><b>'+g.n+'</b><span>'+gachaDesc(g)+'</span></div><div class="btn off lk">Obtenu</div></div>';});
+    if(!got)h+='<div class="note">Rien pour l\'instant. Tentez votre chance !</div>';
   }else if(tabOpen==='shop'){
     var nt=TIERS[S.tier+1];
     h+='<div class="h3">Agrandissement</div>';
@@ -2623,6 +2689,7 @@ function handleAct(b){
     if(role==='cashier'&&S.staff.cashier>=ofKind('register').filter(function(r){return !CAT[r.type].auto;}).length){toast('Ajoutez une caisse pour embaucher un autre caissier.');return;}
     S.money-=cost2;S.staff[role]++;syncStaff();renderSheet();save();
   }else if(a==='order'){orderStock(b.getAttribute('data-type'),Number(b.getAttribute('data-qty')));}
+  else if(a==='gacha'){pullGacha();}
   else if(a==='fillall'){fillAll();}
   else if(a==='fillsel'){fillSel();}
   else if(a==='rotsel'){rotateSel();}
@@ -2663,6 +2730,7 @@ function onTap(px,py){
     if(raycaster.ray.intersectPlane(plane,hit))attemptPlace(Math.floor(hit.x),Math.floor(hit.z));
     return;
   }
+  if(raycaster.intersectObject(gachaRoot,true).length){selected=null;tabOpen='gacha';renderSel();renderSheet();return;}
   var hits=raycaster.intersectObjects(itemRoots,true);
   for(var i=0;i<hits.length;i++){
     var o=hits[i].object;
@@ -2710,7 +2778,7 @@ function save(){
   try{
     var res={};Object.keys(S.reserve).forEach(function(k){res[k]=S.reserve[k];});
     S.pending.forEach(function(p){res[p.type]=(res[p.type]||0)+p.qty;});
-    localStorage.setItem(KEY,JSON.stringify({v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,t:Date.now(),
+    localStorage.setItem(KEY,JSON.stringify({v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,t:Date.now(),
       items:S.items.map(function(i){return {t:i.type,x:i.x,z:i.z,l:i.l,s:i.spent,r:i.r,k:i.stock};})}));
   }catch(e){}
 }
@@ -2719,7 +2787,7 @@ function load(){
     var raw=localStorage.getItem(KEY);if(!raw)return false;
     var d=JSON.parse(raw);if(!d||d.v!==1)return false;
     S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
-    S.reserve=d.reserve||{};S.pending=[];
+    S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
     W=TIERS[S.tier].w;D=TIERS[S.tier].d;
     S.items=[];
     buildShell();
@@ -2796,6 +2864,8 @@ function update(dt){
     var tk=it.model&&it.model.userData.tick;if(tk)tk(simTime,dt,it);
     if(it.alert&&it.alert.visible)it.alert.position.y=1.95+Math.sin(simTime*5)*0.05;
   });
+  var gt=gachaModel.userData.tick;if(gt)gt(simTime,dt,gachaObj);
+  gachaHint.visible=!gachaBusy&&S.money>=gachaPrice()&&Object.keys(S.gacha.got).length<GACHA.length;gachaHint.position.y=1.55+Math.sin(simTime*3)*0.08;gachaHint.rotation.y=simTime*2;
   /* camion de livraison */
   if(!truck.visible){
     if(S.pending.length){truckTimer-=dt;if(truckTimer<=0){truck.visible=true;truckX=-12;truckDelivered=false;}}
