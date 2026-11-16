@@ -80,6 +80,9 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 #radioBtn{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 92px);width:44px;height:44px;border-radius:50%;border:1px solid rgba(126,240,196,.3);background:rgba(15,47,46,.92);color:var(--ink);font-size:21px;line-height:1;cursor:pointer;padding:0;z-index:6;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #np{position:absolute;right:64px;top:calc(env(safe-area-inset-top) + 98px);max-width:46vw;background:rgba(15,47,46,.92);border:1px solid rgba(126,240,196,.22);color:var(--ink);font-weight:800;font-size:13px;padding:7px 12px;border-radius:14px;opacity:0;transform:translateX(8px);transition:opacity .35s,transform .35s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:6}
 #np.show{opacity:1;transform:none}
+#radioBtn.hit{border-color:var(--amber);box-shadow:0 0 14px var(--amber)}
+#np.hit{color:var(--amber);border-color:var(--amber)}
+#radio .rt.hit{color:var(--amber)}
 #radio{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 144px);width:min(310px,86vw);max-height:52vh;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;background:var(--panel);border-radius:18px;padding:12px;display:none;z-index:7;box-shadow:0 8px 28px rgba(0,0,0,.35)}
 #radio.open{display:block}
 #radio .rn{font-size:13px;font-weight:800;color:var(--mint);margin:2px 0 8px}
@@ -235,23 +238,23 @@ var Snd=(function(){
   };
   function P(s){var mn=0;if(s.indexOf('m|')===0){mn=1;s=s.slice(2);}return {mn:mn,c:s.split(' ').map(function(x){var a=x.split(':');return [a[0],+a[1]];})};}
   var ST=[
-    {n:'Konbini Lo-fi',d:'Doux et feutré',bpm:[60,80],len:[50,80],swing:0.4,padP:0.8,yo:1,melr:[0.3,0.7],
+    {n:'Konbini Lo-fi',d:'Doux et feutré',hit:0,bpm:[60,80],len:[50,80],swing:0.4,padP:0.8,yo:1,melr:[0.3,0.7],
      arps:['epiano','piano','pluck','epiano'],leads:['vibe','flute','pluck','marimba'],basses:['sus','walk','sus'],kits:[KITS.boom,KITS.half,null,KITS.sync,KITS.boom],
      progs:['maj7:0 m7:9 m7:2 dom7:7','maj7:5 m7:4 m7:2 sus:7','m7:2 dom7:7 maj7:0 m7:9','maj7:0 maj7:5 m7:4 m7:9','m7:9 m7:2 dom7:7 maj7:0','m|m7:0 maj7:8 maj7:3 dom7:10','m|m7:0 m7:5 dom7:7 m7:0','maj7:0 dom7:4 m7:9 m7:2','maj7:5 maj7:0 m7:9 m7:2','m7:4 maj7:0 m7:2 dom7:7'].map(P),
      titles:['Café de minuit','Néons sous la pluie','Premier train','Onigiri tiède','Rayon du fond','Sieste au comptoir','Ticket de caisse','Pluie sur l\'enseigne','Thé glacé','Dernière commande','Fenêtre embuée','Vinyle usé','Lampadaire fatigué','Bus de nuit','Devoirs sous la lampe','Parapluie jaune','Ramen de 3 h','Radiateur chaud','Chat du dépanneur','Carnet de notes']},
-    {n:'Matin soleil',d:'Entraînant et lumineux',bpm:[92,116],len:[45,70],swing:0.15,padP:0.5,yo:0,melr:[0.5,0.9],
+    {n:'Matin soleil',d:'Entraînant et lumineux',hit:1,bpm:[92,116],len:[45,70],swing:0.15,padP:0.5,yo:0,melr:[0.5,0.9],
      arps:['piano','pluck','marimba','epiano','piano'],leads:['vibe','marimba','flute','saw','pluck'],basses:['pulse','walk','off'],kits:[KITS.pop,KITS.four,KITS.soft,KITS.pop,KITS.sync],
      progs:['maj7:0 m7:4 maj7:5 dom7:7','maj:0 maj:7 min:9 maj:5','maj7:5 dom7:7 m7:4 m7:9','add9:0 maj7:5 m7:9 sus:7','m7:2 dom7:7 maj7:0 maj7:5','maj:0 maj:5 min:9 maj:7','maj:5 maj:7 min:4 min:9','maj:0 maj:7 maj:5 maj:7','add9:0 add9:7 m7:9 maj7:5','maj:0 min:4 maj:5 maj:7'].map(P),
      titles:['Ouverture des portes','Rayon de soleil','Café au lait','Vélo de livraison','Boulangerie fraîche','Bonjour Hoshi','Sac en papier','Petit-déj express','Trottoir ensoleillé','Course du matin','Jus d\'orange','Rideau qui monte','Oiseaux sur le fil','Pain doré','Sandales et soleil','Premier client','Brise de printemps','Tournée des rayons','Tramway du matin','Sourire de la caissière']},
-    {n:'Nuit de Tokyo',d:'Jazz doux et swing',bpm:[62,90],len:[55,85],swing:1,padP:0.6,yo:0,melr:[0.3,0.65],
+    {n:'Nuit de Tokyo',d:'Jazz doux et swing',hit:3,bpm:[62,90],len:[55,85],swing:1,padP:0.6,yo:0,melr:[0.3,0.65],
      arps:['piano','epiano','piano','pluck'],leads:['vibe','flute','bell','saw'],basses:['walk','sus','walk'],kits:[KITS.brush,KITS.brushk,null,KITS.brush],
      progs:['m9:2 dom9:7 maj9:0 m7:9','maj9:0 m7:9 m9:2 dom9:7','m7:4 dom9:9 m9:2 dom9:7','m9:9 m9:2 dom9:7 maj9:0','maj9:5 m7:4 m9:2 dom9:7','m|m9:0 m9:5 dom9:7 m9:0','m|m7:0 maj9:8 dom9:10 maj9:3','maj9:0 dom9:4 m9:9 dom9:2','m|m9:0 dom9:5 maj9:3 dom9:7','maj9:0 maj9:5 m9:4 m9:2'].map(P),
      titles:['Taxi sous la pluie','Ruelle de Shinjuku','Dernier métro','Lumières de Shibuya','Bar à vinyles','Pont de l\'aube','Fumée bleue','Ombrelle rouge','Minuit à Ginza','Quartier endormi','Saxo sur le toit','Rue des lanternes','Pluie de néons','Karaoké fermé','Ramen de minuit','Piano-bar','Enseigne qui clignote','Vitrine mouillée','Trottoir luisant','Noctambule']},
-    {n:'Arcade Hoshi',d:'Chiptune joyeux',bpm:[110,140],len:[40,65],swing:0,padP:0,chip:1,yo:0,melr:[0.6,1],
+    {n:'Arcade Hoshi',d:'Chiptune joyeux',hit:9,bpm:[110,140],len:[40,65],swing:0,padP:0,chip:1,yo:0,melr:[0.6,1],
      arps:['chip','chip','tri'],leads:['chip','tri','saw','chip'],basses:['pulse','off','pulse'],kits:[KITS.four,KITS.pop,KITS.soft,KITS.four],
      progs:['maj:0 maj:7 min:9 maj:5','min:9 maj:5 maj:0 maj:7','maj:0 maj:5 maj:7 maj:5','maj:0 min:9 maj:5 maj:7','min:2 maj:7 maj:0 min:9','m|min:0 maj:8 maj:3 maj:10','m|min:0 min:5 maj:7 min:0','m|min:0 maj:3 maj:10 maj:8','maj:5 maj:0 maj:7 min:9','maj:0 maj:7 min:4 maj:5'].map(P),
      titles:['Insérez une pièce','Niveau un','Super capsule','Course de pixels','Combo parfait','Boss du rayon','Bonus caché','Mode turbo','Game over doux','Score record','Monde des nouilles','Vies infinies','Donjon du frigo','Joueur deux','Chasse aux étoiles','Saut périlleux','Mot de passe','Écran de titre','Temps bonus','Fin du niveau']},
-    {n:'Jardin zen',d:'Calme et aérien',bpm:[48,62],len:[60,90],swing:0,padP:1,sparse:1,yo:1,melr:[0.4,0.8],
+    {n:'Jardin zen',d:'Calme et aérien',hit:3,bpm:[48,62],len:[60,90],swing:0,padP:1,sparse:1,yo:1,melr:[0.4,0.8],
      arps:['box','piano','box','pluck'],leads:['bell','flute','vibe','bell'],basses:['sus'],kits:[null],
      progs:['sus:0 maj7:5 sus:0 sus:7','maj7:0 m7:2 maj7:0 sus:7','m7:9 maj7:5 m7:9 sus:7','add9:0 m7:9 maj7:5 add9:0','maj7:5 maj7:0 maj7:5 m7:2','m|m7:0 sus:5 m7:0 sus:7','m|sus:0 m7:3 maj7:8 sus:7','sus:2 maj7:0 sus:2 maj7:5','add9:0 add9:5 add9:0 sus:7','maj7:0 maj7:0 m7:4 m7:9'].map(P),
      titles:['Mousse et pierre','Bambou au vent','Étang calme','Cerisiers','Lanterne de papier','Goutte de rosée','Brume du matin','Pas sur le gravier','Cloche lointaine','Nuage qui passe','Thé vert','Carpes dans l\'eau','Pavillon de bois','Sable ratissé','Neige sur le toit','Source cachée','Encens','Lune d\'automne','Sentier de pierres','Silence du soir']},
@@ -265,7 +268,7 @@ var Snd=(function(){
     seq.forEach(function(c){var r=60+key+c[1];while(r>=69)r-=12;ch.push(QUAL[c[0]].map(function(x){return r+x;}));var b=r-24;while(b<33)b+=12;bs.push(b);});
     var bpm=Math.round(C.bpm[0]+R()*(C.bpm[1]-C.bpm[0])),len=C.len[0]+R()*(C.len[1]-C.len[0]);
     var pent=pg.mn?[0,3,5,7,10]:(C.yo&&R()<0.5?[0,2,5,7,9]:[0,2,4,7,9]);
-    return {st:s,i:i,title:C.titles[i],bpm:bpm,ch:ch,bs:bs,od:pick(OD),oct:Math.floor(R()*3),arp:pick(C.arps),lead:pick(C.leads),
+    return {st:s,i:i,hit:i===C.hit,title:C.titles[i],bpm:bpm,ch:ch,bs:bs,od:pick(OD),oct:Math.floor(R()*3),arp:pick(C.arps),lead:pick(C.leads),
       padOn:R()<C.padP,pad:pick(['sawtooth','triangle']),bass:pick(C.basses),kit:pick(C.kits),swing:R()<C.swing,sparse:C.sparse,chip:C.chip,
       mel:C.melr[0]+R()*(C.melr[1]-C.melr[0]),melFrom:R()<0.5?1:2,drumFrom:R()<0.5?0:1,rounds:Math.max(2,Math.round(len/(32*30/bpm))),
       sc:pent.map(function(x){return 60+key+x;}),seed:seed,m:null};
@@ -350,7 +353,7 @@ var Snd=(function(){
   }
   function startSong(s,i){
     cur=song(s,i);step=0;loops=0;genMel(cur,0);
-    if(Snd.onSong)Snd.onSong(cur.title,ST[cur.st].n,cur.st,cur.i);
+    if(Snd.onSong)Snd.onSong(cur.title,ST[cur.st].n,cur.st,cur.i,cur.hit);
   }
   function nextSong(){
     if(bp>=bag.length)refill();
@@ -400,12 +403,13 @@ var Snd=(function(){
   });
   return {
     init:init,play:play,machine:machine,
-    stations:function(){return ST.map(function(c){return {n:c.n,d:c.d,t:c.titles||null};});},
-    now:function(){return cur?{title:cur.title,station:ST[cur.st].n,st:cur.st,i:cur.i}:null;},
+    stations:function(){return ST.map(function(c){return {n:c.n,d:c.d,t:c.titles||null,h:c.hit};});},
+    now:function(){return cur?{title:cur.title,station:ST[cur.st].n,st:cur.st,i:cur.i,hit:cur.hit}:null;},
     sel:function(){return ps;},
     setStation:function(k){ps=k;if(!musOn){musOn=true;applyMusic();}persist();init();refill();if(ctx){nextT=ctx.currentTime+0.1;nextSong();}},
     playSong:function(i){if(ps>4)return;if(!musOn){musOn=true;applyMusic();persist();}init();if(ctx){nextT=ctx.currentTime+0.1;bag=bag.filter(function(x,k){return k<bp||x!==i;});startSong(ps,i);}},
     skip:function(){if(!musOn){musOn=true;applyMusic();persist();}init();if(ctx){nextT=ctx.currentTime+0.1;nextSong();}},
+    hit:function(){return !!(cur&&cur.hit&&musOn&&ctx&&ctx.state==='running');},
     sfx:function(){return sfxOn;},music:function(){return musOn;},
     toggleSfx:function(){sfxOn=!sfxOn;persist();init();if(sfxOn)play('tap');return sfxOn;},
     toggleMusic:function(){musOn=!musOn;persist();init();applyMusic();return musOn;},
@@ -417,13 +421,14 @@ document.addEventListener('click',function(e){var el=e.target&&e.target.closest?
 (function(){
   var btn=document.getElementById('radioBtn'),pn=document.getElementById('radio'),np=document.getElementById('np'),npT=0;
   function render(){
-    var n=Snd.now(),sel=Snd.sel(),ss=Snd.stations(),h='<div class="rn">'+(!Snd.music()?'Musique coupée':n?'♪ '+n.title+' · '+n.station:'La musique démarre au premier toucher')+'</div>';
+    var n=Snd.now(),sel=Snd.sel(),ss=Snd.stations(),h='<div class="rn">'+(!Snd.music()?'Musique coupée':n?(n.hit?'★ ':'♪ ')+n.title+' · '+n.station+(n.hit?' · Ventes ×2':''):'La musique démarre au premier toucher')+'</div>';
     ss.forEach(function(c,k){h+='<button class="rs'+(k===sel?' on':'')+'" data-r="'+k+'">'+c.n+'<small>'+c.d+'</small></button>';});
-    if(sel<5&&ss[sel].t){h+='<div class="rn" style="margin-top:10px">Morceaux</div>';ss[sel].t.forEach(function(t,i){h+='<button class="rt'+(n&&n.st===sel&&n.i===i?' on':'')+'" data-t="'+i+'">'+(i+1)+'. '+t+'</button>';});}
+    if(sel<5&&ss[sel].t){h+='<div class="rn" style="margin-top:10px">Morceaux</div>';h+='<div class="rn" style="font-weight:700;color:var(--mute);margin:0 0 6px">★ Le succès de la station : pendant qu\'il joue, les clients dépensent 2 fois plus.</div>';ss[sel].t.forEach(function(t,i){h+='<button class="rt'+(n&&n.st===sel&&n.i===i?' on':'')+(i===ss[sel].h?' hit':'')+'" data-t="'+i+'">'+(i+1)+'. '+(i===ss[sel].h?'★ ':'')+t+'</button>';});}
     h+='<div class="rb"><button class="btn" data-a="next">Suivant ▶▶</button><button class="btn ghost" data-a="mus">'+(Snd.music()?'Couper':'Jouer')+'</button></div>';
     pn.innerHTML=h;
   }
-  Snd.onSong=function(t,sn){np.textContent='♪ '+t;np.classList.add('show');clearTimeout(npT);npT=setTimeout(function(){np.classList.remove('show');},5000);if(pn.classList.contains('open'))render();};
+  Snd.onSong=function(t,sn,st,i,hit){np.textContent=(hit?'★ ':'♪ ')+t+(hit?' · Ventes ×2':'');np.classList.toggle('hit',!!hit);np.classList.add('show');clearTimeout(npT);npT=setTimeout(function(){np.classList.remove('show');},hit?7000:5000);if(pn.classList.contains('open'))render();};
+  setInterval(function(){btn.classList.toggle('hit',Snd.hit());},1000);
   btn.addEventListener('click',function(){pn.classList.toggle('open');if(pn.classList.contains('open'))render();});
   pn.addEventListener('click',function(e){
     var b=e.target.closest?e.target.closest('[data-r],[data-t],[data-a]'):null;if(!b)return;
@@ -629,6 +634,7 @@ function spendMult(){
   var tb=0;ofType('table').slice(0,6).forEach(function(t){tb+=CAT.table.spend*decorF(t.l);});ofType('sofa').slice(0,4).forEach(function(t){tb+=CAT.sofa.spend*decorF(t.l);});
   m+=tb;
   if(S.evt)m+=S.evt.s;
+  if(Snd.hit())m*=2;
   return m;
 }
 function trafficMult(){
