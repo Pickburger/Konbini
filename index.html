@@ -424,7 +424,7 @@ document.addEventListener('click',function(e){var el=e.target&&e.target.closest?
     var n=Snd.now(),sel=Snd.sel(),ss=Snd.stations(),h='<div class="rn">'+(!Snd.music()?'Musique coupée':n?(n.hit?'★ ':'♪ ')+n.title+' · '+n.station+(n.hit?' · Ventes ×2':''):'La musique démarre au premier toucher')+'</div>';
     ss.forEach(function(c,k){h+='<button class="rs'+(k===sel?' on':'')+'" data-r="'+k+'">'+c.n+'<small>'+c.d+'</small></button>';});
     if(sel<5&&ss[sel].t){h+='<div class="rn" style="margin-top:10px">Morceaux</div>';h+='<div class="rn" style="font-weight:700;color:var(--mute);margin:0 0 6px">★ Le succès de la station : pendant qu\'il joue, les clients dépensent 2 fois plus.</div>';ss[sel].t.forEach(function(t,i){h+='<button class="rt'+(n&&n.st===sel&&n.i===i?' on':'')+(i===ss[sel].h?' hit':'')+'" data-t="'+i+'">'+(i+1)+'. '+(i===ss[sel].h?'★ ':'')+t+'</button>';});}
-    h+='<div class="rb"><button class="btn" data-a="next">Suivant ▶▶</button><button class="btn ghost" data-a="mus">'+(Snd.music()?'Couper':'Jouer')+'</button></div>';
+    h+='<div class="rb"><button class="btn ghost" data-a="mus">'+(Snd.music()?'Couper':'Jouer')+'</button></div>';
     pn.innerHTML=h;
   }
   Snd.onSong=function(t,sn,st,i,hit){np.textContent=(hit?'★ ':'♪ ')+t+(hit?' · Ventes ×2':'');np.classList.toggle('hit',!!hit);np.classList.add('show');clearTimeout(npT);npT=setTimeout(function(){np.classList.remove('show');},hit?7000:5000);if(pn.classList.contains('open'))render();};
