@@ -2550,6 +2550,12 @@ function renderSheet(){
     else h+='<div class="note">Surface maximale atteinte : '+W+' × '+D+' cases.</div>';
     h+='<div class="h3">Statistiques</div>';
     h+='<div class="stat">Clients servis<b>'+fmt(S.served)+'</b></div><div class="stat">Gains totaux<b>'+yen(S.earned)+'</b></div><div class="stat">Rang<b>★ '+rank()+'</b></div><div class="stat">Niveau max des meubles<b>'+maxLevel()+'</b></div>';
+    h+='<div class="h3">Sauvegarde</div>';
+    h+='<div class="note">'+(remote.state==='ok'?'Sauvegarde en ligne active : votre partie est aussi conservée sur votre compte.':'Sauvegarde sur cet appareil seulement. Utilisez le code ci-dessous pour garder une copie.')+'</div>';
+    h+='<div class="row"><div class="meta"><b>Exporter ma partie</b><span>Affiche un code à copier et à conserver.</span></div><button class="btn" data-act="export">Afficher</button></div>';
+    if(saveText)h+='<textarea readonly style="width:100%;box-sizing:border-box;min-height:72px;font:11px monospace;border-radius:8px;padding:6px;margin:4px 0" onclick="this.select()">'+saveText+'</textarea>';
+    h+='<div class="row"><div class="meta"><b>Importer une partie</b><span>Collez un code puis touchez Importer.</span></div><button class="btn" data-act="import">Importer</button></div>';
+    h+='<textarea id="saveIn" placeholder="Collez le code ici" style="width:100%;box-sizing:border-box;min-height:56px;font:11px monospace;border-radius:8px;padding:6px;margin:4px 0"></textarea>';
     h+='<div class="h3">Partie</div><div class="row"><div class="meta"><b>Nouvelle partie</b><span>Efface la sauvegarde de ce navigateur.</span></div><button class="btn danger" data-act="reset">Effacer</button></div>';
   }
   sh.innerHTML=h;sh.classList.add('open');sh.scrollTop=keep;
@@ -2690,6 +2696,8 @@ function handleAct(b){
     S.money-=cost2;S.staff[role]++;syncStaff();renderSheet();save();
   }else if(a==='order'){orderStock(b.getAttribute('data-type'),Number(b.getAttribute('data-qty')));}
   else if(a==='gacha'){pullGacha();}
+  else if(a==='export'){doExport();}
+  else if(a==='import'){doImport();}
   else if(a==='fillall'){fillAll();}
   else if(a==='fillsel'){fillSel();}
   else if(a==='rotsel'){rotateSel();}
@@ -2774,33 +2782,91 @@ canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('wheel',function(e){e.preventDefault();setZoom(zoom*(e.deltaY<0?1.1:0.91));},{passive:false});
 
 /* ---------- Sauvegarde ---------- */
+function buildSave(){
+  var res={};Object.keys(S.reserve).forEach(function(k){res[k]=S.reserve[k];});
+  S.pending.forEach(function(p){res[p.type]=(res[p.type]||0)+p.qty;});
+  return {v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,t:Date.now(),
+    items:S.items.map(function(i){return {t:i.type,x:i.x,z:i.z,l:i.l,s:i.spent,r:i.r,k:i.stock};})};
+}
+var remote={ref:null,state:'none',dirty:false,busy:false,last:0};
 function save(){
-  try{
-    var res={};Object.keys(S.reserve).forEach(function(k){res[k]=S.reserve[k];});
-    S.pending.forEach(function(p){res[p.type]=(res[p.type]||0)+p.qty;});
-    localStorage.setItem(KEY,JSON.stringify({v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,t:Date.now(),
-      items:S.items.map(function(i){return {t:i.type,x:i.x,z:i.z,l:i.l,s:i.spent,r:i.r,k:i.stock};})}));
-  }catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify(buildSave()));}catch(e){}
+  remote.dirty=true;
+}
+function pushRemote(force){
+  if(!remote.ref||remote.busy||!remote.dirty)return;
+  if(!force&&Date.now()-remote.last<15000)return;
+  remote.busy=true;remote.dirty=false;remote.last=Date.now();
+  var p;
+  try{p=remote.ref.set({d:JSON.stringify(buildSave())});}catch(e){remote.busy=false;remote.dirty=true;remote.state='err';return;}
+  p.then(function(){remote.busy=false;remote.state='ok';}).catch(function(){remote.busy=false;remote.dirty=true;remote.state='err';});
+}
+function applySave(d){
+  selected=null;placing=null;
+  customers.slice().forEach(removeActor);
+  staffActors.slice().forEach(removeActor);
+  S.items.slice().forEach(function(it){scene.remove(it.g);});
+  S.items=[];itemRoots=[];
+  S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
+  S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
+  W=TIERS[S.tier].w;D=TIERS[S.tier].d;
+  buildShell();
+  (d.items||[]).forEach(function(i){if(CAT[i.t]&&i.x<W&&i.z<D)addItem(i.t,i.x,i.z,i.l,i.s,i.r||0,i.k);});
+  rebuildOcc();
+  var away=Math.min((Date.now()-d.t)/1000,6*3600);
+  if(away>60&&S.avgRate>0){
+    var g=Math.round(S.avgRate*away*0.5);
+    if(g>0){S.money+=g;S.earned+=g;setTimeout(function(){toast('Pendant votre absence : +'+yen(g));},700);}
+  }
+}
+function refreshAll(){
+  S.items.forEach(function(i){i.pop=0;});
+  syncStaff();fitCamera();applyTime();updateHud();renderSel();renderSheet();
 }
 function load(){
   try{
     var raw=localStorage.getItem(KEY);if(!raw)return false;
     var d=JSON.parse(raw);if(!d||d.v!==1)return false;
-    S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
-    S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
-    W=TIERS[S.tier].w;D=TIERS[S.tier].d;
-    S.items=[];
-    buildShell();
-    (d.items||[]).forEach(function(i){if(CAT[i.t]&&i.x<W&&i.z<D)addItem(i.t,i.x,i.z,i.l,i.s,i.r||0,i.k);});
-    rebuildOcc();
-    var away=Math.min((Date.now()-d.t)/1000,6*3600);
-    if(away>60&&S.avgRate>0){
-      var g=Math.round(S.avgRate*away*0.5);
-      if(g>0){S.money+=g;S.earned+=g;setTimeout(function(){toast('Pendant votre absence : +'+yen(g));},700);}
-    }
+    applySave(d);
     return true;
   }catch(e){return false;}
 }
+function initRemote(){
+  if(!window.claude||!window.claude.use)return;
+  var db=null;
+  Promise.all([window.claude.use('db'),window.claude.use('user')]).then(function(r){
+    db=r[0];var us=r[1];if(!db||!us)return null;
+    return us.id();
+  }).then(function(id){
+    if(!id||!db)return null;
+    var ref=db.collection('data/users/'+id).doc('konbini');
+    return ref.get().then(function(snap){return {ref:ref,snap:snap};});
+  }).then(function(o){
+    if(!o)return;
+    var d=null;
+    try{if(o.snap.exists){d=JSON.parse(o.snap.data().d);}}catch(e){d=null;}
+    if(d&&d.v===1&&d.earned>S.earned){
+      applySave(d);refreshAll();save();toast('Partie en ligne restaurée.');
+    }
+    remote.ref=o.ref;remote.state='ok';remote.dirty=true;pushRemote(true);
+    renderSheet();
+  }).catch(function(){remote.state='err';});
+}
+var saveText='';
+function doExport(){
+  try{saveText=btoa(JSON.stringify(buildSave()));}catch(e){saveText='';}
+  try{if(navigator.clipboard&&saveText)navigator.clipboard.writeText(saveText).then(function(){toast('Code copié.');},function(){});}catch(e){}
+  renderSheet();
+}
+function doImport(){
+  var el=document.getElementById('saveIn');var v=el?el.value.trim():'';
+  try{
+    var d=JSON.parse(atob(v));
+    if(!d||d.v!==1||!d.items)throw new Error('x');
+    applySave(d);refreshAll();save();pushRemote(true);toast('Partie importée.');
+  }catch(e){toast('Code invalide.');}
+}
+
 function offlineCredit(sec){
   sec=Math.min(sec,6*3600);
   var g=Math.round(S.avgRate*sec*0.5);
@@ -2878,7 +2944,7 @@ function update(dt){
   accSec+=dt;
   if(accSec>=1){accSec-=1;S.avgRate=S.avgRate*0.9+secEarn*0.1;secEarn=0;}
   accHud+=dt;if(accHud>0.25){accHud=0;updateHud();}
-  accSave+=dt;if(accSave>12){accSave=0;save();}
+  accSave+=dt;if(accSave>12){accSave=0;save();}pushRemote(false);
 }
 function frame(now){
   requestAnimationFrame(frame);
@@ -2888,8 +2954,8 @@ function frame(now){
   placeCam();
   renderer.render(scene,camera);
 }
-document.addEventListener('visibilitychange',function(){if(document.hidden)save();});
-window.addEventListener('pagehide',save);
+document.addEventListener('visibilitychange',function(){if(document.hidden){save();pushRemote(true);}});
+window.addEventListener('pagehide',function(){save();pushRemote(true);});
 window.addEventListener('resize',function(){fitCamera();});
 
 /* ---------- Démarrage ---------- */
@@ -2905,6 +2971,7 @@ if(!loaded){
 S.items.forEach(function(i){i.pop=0;});
 syncStaff();
 fitCamera();applyTime();updateHud();renderSheet();
+initRemote();
 requestAnimationFrame(frame);
 })();
 </script>
