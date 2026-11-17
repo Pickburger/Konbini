@@ -3150,7 +3150,55 @@ document.addEventListener('click',function(e){
 /* ---------- Entrées tactiles ---------- */
 var raycaster=new T.Raycaster(),ndc=new T.Vector2(),plane=new T.Plane(new T.Vector3(0,1,0),-FLOOR_Y),hit=new T.Vector3();
 function setNdc(px,py){ndc.set(px/innerWidth*2-1,-(py/innerHeight)*2+1);raycaster.setFromCamera(ndc,camera);}
+
+/* ---------- Billet échappé par un client ---------- */
+var bill=null,billT=rnd(120,180);
+var billMat=new T.MeshLambertMaterial({color:'#3fae5c',emissive:'#7dff9a',emissiveIntensity:0.4});
+var billRingMat=new T.MeshBasicMaterial({color:'#ffd84a',transparent:true,opacity:0.8,depthWrite:false,side:T.DoubleSide});
+function billXp(){var r=rank();var a=RANKS[r-1]||0,b=RANKS[r]!==undefined?RANKS[r]:a+(a-(RANKS[r-2]||0));return Math.max(1,Math.round((b-a)*0.1));}
+function dropBill(){
+  var cs=customers.filter(function(c){return c.kind==='cust'&&c.g&&c.g.parent&&c.state==='walk'&&(function(p){return p.x>0.3&&p.x<W-0.3&&p.z>0.3&&p.z<D-0.3;})(c.g.position);});
+  if(!cs.length)return false;
+  var c=pick(cs),p=c.g.position,g=new T.Group();
+  var y=FLOOR_Y;
+  bx(g,0.46,0.02,0.23,billMat,0,0,0);bx(g,0.13,0.022,0.13,'#e9f7ea',0,0.001,0);bx(g,0.06,0.024,0.18,'#2a7a40',-0.16,0.001,0);bx(g,0.06,0.024,0.18,'#2a7a40',0.16,0.001,0);
+  var ring=new T.Mesh(new T.RingGeometry(0.32,0.42,24),billRingMat);ring.rotation.x=-Math.PI/2;ring.position.y=0.005;g.add(ring);
+  g.position.set(p.x+rnd(-0.15,0.15),y+0.02,p.z+rnd(-0.15,0.15));g.rotation.y=rnd(0,6.28);
+  scene.add(g);
+  bill={g:g,c:c,t:10};
+  Snd.play('beep');
+  return true;
+}
+function billUpdate(dt){
+  if(bill){
+    bill.t-=dt;
+    var f=bill.t<3?14:6,on=Math.sin(simTime*f)>0;
+    billMat.emissiveIntensity=on?0.9:0.1;billRingMat.opacity=on?0.9:0.15;bill.g.scale.setScalar(on?1.2:1);
+    if(bill.t<=0){scene.remove(bill.g);bill=null;billT=rnd(120,180);}
+    return;
+  }
+  billT-=dt;
+  if(billT<=0){if(!dropBill())billT=5;}
+}
+var _bv=new T.Vector3();
+function tapBill(px,py){
+  if(!bill)return false;
+  _bv.copy(bill.g.position).project(camera);
+  var sx=(_bv.x+1)/2*innerWidth,sy=(1-_bv.y)/2*innerHeight;
+  if(Math.hypot(sx-px,sy-py)>48)return false;
+  var xp=billXp(),before=rank(),pos=bill.g.position.clone();
+  var bc=bill.c;if(customers.indexOf(bc)>=0){var cp=bc.g.position;floatAt(new T.Vector3(cp.x,cp.y+1.5,cp.z),'Merci !','');}
+  scene.remove(bill.g);bill=null;billT=rnd(120,180);
+  S.served+=xp;
+  Snd.play('coin');Snd.play('up');
+  floatAt(new T.Vector3(pos.x,pos.y+1.1,pos.z),'+'+fmt(xp)+' XP','rk');
+  toast('Vous avez rendu le billet au client. Merci ! +'+fmt(xp)+' XP');
+  var after=rank();if(after>before)onRankUp(after);
+  updateHud();save();
+  return true;
+}
 function onTap(px,py){
+  if(!placing&&tapBill(px,py))return;
   setNdc(px,py);
   if(placing){
     if(raycaster.ray.intersectPlane(plane,hit))attemptPlace(Math.floor(hit.x),Math.floor(hit.z));
@@ -4044,7 +4092,7 @@ function nbSpawn(dt){
   });
 }
 function worldUpdate(dt){
-  wxUpdate(dt);envUpdate(dt);trfUpdate(dt);ambUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
+  wxUpdate(dt);billUpdate(dt);envUpdate(dt);trfUpdate(dt);ambUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
   for(var i=0;i<nbTicks.length;i++)nbTicks[i](simTime,dt);
 }
 /* ---------- Interface : onglet Ville ---------- */
