@@ -608,7 +608,7 @@ var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 var FRONT=[[0,1],[1,0],[0,-1],[-1,0]];
 
 /* ---------- État ---------- */
-var S={money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},nb:{temple:0,park:0,school:0,station:0}};
+var S={dn:5,money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},nb:{temple:0,park:0,school:0,station:0}};
 var W=TIERS[0].w, D=TIERS[0].d;
 var stkMult=1, uid=0, occ=[], customers=[], staffActors=[], itemRoots=[];
 var placing=null, selected=null, tabOpen=null;
@@ -2966,7 +2966,7 @@ function updateHud(){
   if(hi===undefined){$('rankBar').style.width='100%';$('rankTxt').textContent=fmt(S.served)+' clients';}
   else{$('rankBar').style.width=(100*(S.served-lo)/(hi-lo))+'%';$('rankTxt').textContent=fmt(S.served)+' / '+fmt(hi);}
   var m=Math.floor(S.clock),hh=Math.floor(m/60),mm=m%60;
-  $('clock').textContent=WXN[S.wx.cur].e+' '+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+  $('clock').textContent=WXN[S.wx.cur].e+' '+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+' · '+curTemp()+'°C';
   var wl=$('wxLeft');if(wl)wl.textContent=fmtT(S.wx.left);
   var di=$('dlInfo');if(di)di.textContent=dlInfoText();
   var ev=$('evt');
@@ -3178,7 +3178,7 @@ canvas.addEventListener('wheel',function(e){e.preventDefault();setZoom(zoom*(e.d
 function buildSave(){
   var res={};Object.keys(S.reserve).forEach(function(k){res[k]=S.reserve[k];});
   S.pending.forEach(function(p){res[p.type]=(res[p.type]||0)+p.qty;});
-  return {v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,dl:S.dl,nb:S.nb,t:Date.now(),
+  return {v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,dn:S.dn,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,dl:S.dl,nb:S.nb,t:Date.now(),
     items:S.items.map(function(i){return {t:i.type,x:i.x,z:i.z,l:i.l,s:i.spent,r:i.r,k:i.stock};})};
 }
 var remote={ref:null,state:'none',dirty:false,busy:false,last:0};
@@ -3200,7 +3200,7 @@ function applySave(d){
   staffActors.slice().forEach(removeActor);
   S.items.slice().forEach(function(it){scene.remove(it.g);});
   S.items=[];itemRoots=[];
-  S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
+  S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.dn=(typeof d.dn==='number')?d.dn:5;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
   S.dl=Object.assign({on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},d.dl||{});S.nb=Object.assign({temple:0,park:0,school:0,station:0},d.nb||{});dlPend=0;
   S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
   W=TIERS[S.tier].w;D=TIERS[S.tier].d;
@@ -3265,14 +3265,14 @@ function offlineCredit(sec){
   sec=Math.min(sec,6*3600);
   var g=Math.round(S.avgRate*sec*0.5);
   if(g>0){S.money+=g;S.earned+=g;toast('Pendant votre absence : +'+yen(g));}
-  S.clock=(S.clock+sec*4)%1440;
+  S.clock=(S.clock+sec*4)%1440;S.dn+=sec*4/1440;
 }
 
 /* ---------- Boucle ---------- */
 var last=performance.now(),accHud=0,accSave=0,accSec=0,accTime=0;
 function update(dt){
   simTime+=dt;
-  S.clock=(S.clock+dt*4)%1440;
+  S.clock=(S.clock+dt*4)%1440;S.dn+=dt*4/1440;
   accTime+=dt;if(accTime>0.5){accTime=0;applyTime();}
   /* événements */
   if(S.evt){S.evt.left-=dt;if(S.evt.left<=0){S.evt=null;evTimer=rnd(140,260);}}
@@ -3373,13 +3373,22 @@ var WXT={clear:1,rain:0.85,heat:0.95,snow:0.6};
 var WXD={clear:1,rain:1.8,heat:1.3,snow:2.2};
 function wxW(type){var w=WXW[S.wx.cur];return (w&&w[type])||1;}
 function wxPrice(type){var w=wxW(type);return w>1?1+(w-1)*0.15:1;}
+var SEAS=[{n:'Printemps',e:'🌸'},{n:'Été',e:'☀️'},{n:'Automne',e:'🍂'},{n:'Hiver',e:'⛄'}];
+function seasonIdx(){return Math.floor(S.dn/10)%4;}
+function meanT(){return 8+16*Math.sin(2*Math.PI*((S.dn/40)%1-0.125));}
+function curTemp(){
+  var h=S.clock/60,w=S.wx.cur;
+  return Math.round(meanT()+4*Math.cos((h-15)/12*Math.PI)+(w==='heat'?8:w==='rain'?-2:w==='snow'?-2:0));
+}
+function wxValid(k){var m=meanT();return k==='snow'?m<=3:k==='rain'?m>=-2:k==='heat'?m>=19:true;}
 function pickWx(cur){
-  var o=[['clear',0.4],['rain',0.3],['heat',0.15],['snow',0.15]].filter(function(x){return x[0]!==cur;}),tot=0,i;
+  var m=meanT(),o=[['clear',0.5],['rain',m>0?(m<15?0.45:0.2):0],['heat',m>=21?0.35:0],['snow',m<=0?0.5:0]].filter(function(x){return x[0]!==cur&&x[1]>0;}),tot=0,i;
   o.forEach(function(x){tot+=x[1];});
   var r=Math.random()*tot;
   for(i=0;i<o.length;i++){r-=o[i][1];if(r<=0)return o[i][0];}
   return o[0][0];
 }
+var ssv=[0,0,0,0],lastSeason=-1;
 function fmtT(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),r=s%60;return m>0?m+' min '+(r<10?'0':'')+r+' s':r+' s';}
 function wxFavs(k){
   var w=WXW[k],a=[];
@@ -3404,7 +3413,13 @@ var snowMesh=new T.Points(snowGeo,new T.PointsMaterial({color:'#ffffff',size:5,s
 snowMesh.frustumCulled=false;snowMesh.visible=false;wxGroup.add(snowMesh);
 
 function wxUpdate(dt){
-  var w=S.wx;
+  var w=S.wx,si=seasonIdx();
+  if(lastSeason<0)ssv[si]=1;
+  if(lastSeason>=0&&si!==lastSeason){toast(SEAS[si].e+' '+SEAS[si].n+' : une nouvelle saison commence !');Snd.play('event');var wl0=$('wxLeft');if(wl0)renderSheet();}
+  lastSeason=si;
+  for(var q=0;q<4;q++)ssv[q]+=((q===si?1:0)-ssv[q])*Math.min(1,dt*0.15);
+  if(!wxValid(w.cur))w.left=0;
+  if(!wxValid(w.next))w.next=pickWx(w.cur);
   w.left-=dt;
   if(w.left<=0){
     w.cur=w.next;w.next=pickWx(w.cur);w.left=rnd(130,240);
@@ -3451,16 +3466,18 @@ function wxUpdate(dt){
 }
 function wxApply(day,n){
   /* lumières, sol et ciel selon la météo (appelé par applyTime) */
-  var r=wf.rain,h=wf.heat,s=wf.snow;
+  var r=wf.rain,h=wf.heat,s=wf.snow,sn=Math.max(s,ssv[3]*0.85),au=ssv[2],sp=ssv[0];
+  grassMat.color.lerp(tmpW.set('#9ccf5e'),0.35*sp*day);
+  grassMat.color.lerp(tmpW.set('#b8964a'),0.5*au*day);
   grassMat.color.lerp(tmpW.set('#a9ad55'),0.55*h*day);
   grassMat.color.multiplyScalar(1-0.22*r);
-  grassMat.color.lerp(tmpW.set('#e9f1f6').multiplyScalar(0.32+0.68*day),0.85*s);
+  grassMat.color.lerp(tmpW.set('#e9f1f6').multiplyScalar(0.32+0.68*day),0.85*sn);
   hemi.intensity*=1-0.35*r-0.1*s+0.1*h;
   sun.intensity*=1-0.6*r-0.35*s+0.15*h;
-  roadMat.color.set('#3b434a').lerp(tmpW.set('#23282d'),r*0.8).lerp(tmpW.set('#aab4bd').multiplyScalar(0.4+0.6*day),s*0.85);
-  walkMat.color.set('#d4d7d2').lerp(tmpW.set('#a9aeb0'),r*0.7).lerp(tmpW.set('#f4f8fb').multiplyScalar(0.4+0.6*day),s*0.9);
+  roadMat.color.set('#3b434a').lerp(tmpW.set('#23282d'),r*0.8).lerp(tmpW.set('#aab4bd').multiplyScalar(0.4+0.6*day),Math.max(s,ssv[3]*0.5)*0.85);
+  walkMat.color.set('#d4d7d2').lerp(tmpW.set('#a9aeb0'),r*0.7).lerp(tmpW.set('#f4f8fb').multiplyScalar(0.4+0.6*day),sn*0.9);
   for(var i=0;i<FOL.length;i++){
-    FOL[i].color.set(FOLB[i]).lerp(tmpW.set('#a9b24f'),0.25*h).lerp(tmpW.set('#26402b'),0.18*r).lerp(tmpW.set('#f2f7fa').multiplyScalar(0.4+0.6*day),0.6*s);
+    FOL[i].color.set(FOLB[i]).lerp(tmpW.set('#a9b24f'),0.25*h).lerp(tmpW.set('#26402b'),0.18*r).lerp(tmpW.set('#d9822b'),0.7*au).lerp(tmpW.set('#ffb3c8'),0.3*sp).lerp(tmpW.set('#f2f7fa').multiplyScalar(0.4+0.6*day),0.6*sn);
   }
   /* voile de couleur */
   var col=r>0.05?'rgba(40,60,95,'+(0.2*r).toFixed(3)+')':h>0.05?'rgba(255,160,40,'+(0.13*h*day).toFixed(3)+')':s>0.05?'rgba(225,238,255,'+(0.12*s).toFixed(3)+')':'rgba(0,0,0,0)';
@@ -3862,7 +3879,9 @@ function nbLvlRow(k){
 }
 function renderCity(){
   var h='',w=S.wx,nx=WXN[w.next];
+  var si=seasonIdx(),dj=Math.floor(S.dn%10)+1;
   h+='<div class="h3">Météo</div>';
+  h+='<div class="row"><div class="meta"><b>'+SEAS[si].e+' '+SEAS[si].n+' · jour '+dj+'/10</b><span>Il fait '+curTemp()+'°C dehors. Chaque saison dure 10 jours de jeu ; la neige ne tombe qu\'au froid, la canicule seulement l\'été.</span></div></div>';
   h+='<div class="row"><div class="meta"><b>'+WXN[w.cur].e+' '+WXN[w.cur].n+' · encore <span id="wxLeft">'+fmtT(w.left)+'</span></b><span>'+WXN[w.cur].t+'</span></div></div>';
   h+='<div class="note">Ensuite : '+nx.e+' '+nx.n.toLowerCase()+'. '+(w.next==='clear'?'':'Préparez : '+wxFavs(w.next)+'.')+'</div>';
   h+='<div class="h3">Livraison à scooter</div>';
