@@ -2321,7 +2321,7 @@ function buildShell(){
   for(j=-1;j<D;j+=2.2)treeAt(W+1.8+r()*0.8,j+r());
   for(i=-8;i<W+12;i+=2.6)treeAt(i+r(),D+7.4+r()*0.8);
   for(j=-3;j<D;j+=3)treeAt(-3.8-r(),j+r());
-  rebuildNb();syncScoots();
+  rebuildNb();syncScoots();buildEnv();
   updateGlow();
 }
 var truck=(function(){
@@ -3482,6 +3482,7 @@ function wxApply(day,n){
   grassMat.color.lerp(tmpW.set('#a9ad55'),0.55*h*day);
   grassMat.color.multiplyScalar(1-0.22*r);
   grassMat.color.lerp(tmpW.set('#e9f1f6').multiplyScalar(0.32+0.68*day),0.85*sn);
+  pineMat.color.set('#2f6b4a').lerp(tmpW.set('#e8f0f4'),0.5*sn);
   hemi.intensity*=1-0.35*r-0.1*s+0.1*h;
   sun.intensity*=1-0.6*r-0.35*s+0.15*h;
   roadMat.color.set('#3b434a').lerp(tmpW.set('#23282d'),r*0.8).lerp(tmpW.set('#aab4bd').multiplyScalar(0.4+0.6*day),Math.max(s,ssv[3]*0.5)*0.85);
@@ -3820,6 +3821,7 @@ function house(g,x,z,wall,roof,s){
 function car(g,x,z,c,ry){
   var m=new T.Group();m.position.set(x,0,z);m.rotation.y=ry||0;g.add(m);
   bx(m,0.9,0.22,0.45,c,0,0.06,0);bx(m,0.5,0.2,0.4,c,-0.05,0.28,0);bx(m,0.36,0.1,0.42,winMat,-0.05,0.3,0);
+  return m;
 }
 function windowGrid(g,x0,x1,y0,y1,z,dx,dy){for(var y=y0;y<=y1;y+=dy)for(var x=x0;x<=x1;x+=dx)bx(g,0.34,0.3,0.04,winMat,x,y,z);}
 function bRamen(g,L){
@@ -3999,7 +4001,7 @@ function nbSpawn(dt){
   });
 }
 function worldUpdate(dt){
-  wxUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
+  wxUpdate(dt);envUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
   for(var i=0;i<nbTicks.length;i++)nbTicks[i](simTime,dt);
 }
 /* ---------- Interface : onglet Ville ---------- */
@@ -4076,6 +4078,129 @@ function cityAct(a,b){
     toast(d.e+' '+d.n+' : niveau '+S.nb[k]+' !');renderSheet();save();return true;
   }
   return false;
+}
+
+/* ======================================================================
+   DÉCOR : rues, forêts, lacs, rivière, champs, montagnes
+   ====================================================================== */
+var envG=new T.Group();scene.add(envG);
+var envCars=[];
+var pineMat=new T.MeshLambertMaterial({color:'#2f6b4a'}),waterMat=new T.MeshLambertMaterial({color:'#5fb4d9'}),shoreMat=new T.MeshLambertMaterial({color:'#9ccf7e'});
+function inst(geo,mat,arr){
+  if(!arr.length)return;
+  var im=new T.InstancedMesh(geo,mat,arr.length),o=new T.Object3D(),i,a;
+  for(i=0;i<arr.length;i++){a=arr[i];o.position.set(a[0],a[1],a[2]);o.scale.set(a[3],a[4],a[5]);o.rotation.set(0,a[6]||0,0);o.updateMatrix();im.setMatrixAt(i,o.matrix);}
+  im.frustumCulled=false;envG.add(im);
+}
+function buildEnv(){
+  while(envG.children.length)envG.remove(envG.children[0]);
+  envCars=[];
+  var r=mulberry(321),XL=-25,XR=W+27,ZB=-19.5,ZF=D+29,X0=XL-1.6,X1=XR+1.6,i,x,z;
+  var CX=(X0+X1)/2,CZ=(ZB+ZF)/2;
+  /* rues */
+  bx(envG,X1-X0,0.04,3.2,roadMat,CX,0,ZB);bx(envG,X1-X0,0.04,3.2,roadMat,CX,0,ZF);
+  bx(envG,3.2,0.04,ZF-ZB+3.2,roadMat,XL,0,CZ);bx(envG,3.2,0.04,ZF-ZB+3.2,roadMat,XR,0,CZ);
+  bx(envG,X1-X0-3.6,0.06,1.0,walkMat,CX,0,ZB+2.1);bx(envG,X1-X0-3.6,0.06,1.0,walkMat,CX,0,ZF-2.1);
+  bx(envG,1.0,0.06,ZF-ZB-3.6,walkMat,XL+2.1,0,CZ);bx(envG,1.0,0.06,ZF-ZB-3.6,walkMat,XR-2.1,0,CZ);
+  var dh=[],dv=[],lamp=[];
+  for(x=X0+1;x<X1-1;x+=1.6){dh.push([x,0.05,ZB,1,1,1]);dh.push([x,0.05,ZF,1,1,1]);}
+  for(z=ZB+1;z<ZF-1;z+=1.6){if(z>D+1.2&&z<D+6.7)continue;dv.push([XL,0.05,z,1,1,1]);dv.push([XR,0.05,z,1,1,1]);}
+  for(x=X0+4;x<X1-3;x+=7){lamp.push([x,0,ZB+1.9,1,1,1]);lamp.push([x,0,ZF-1.9,1,1,1]);}
+  for(z=ZB+6;z<ZF-4;z+=7){if(z>D+0.5&&z<D+7.5)continue;lamp.push([XL+1.9,0,z,1,1,1]);lamp.push([XR-1.9,0,z,1,1,1]);}
+  var dM=new T.MeshLambertMaterial({color:'#e8e4d0'});
+  inst(new T.BoxGeometry(0.7,0.02,0.08),dM,dh);inst(new T.BoxGeometry(0.08,0.02,0.7),dM,dv);
+  var poles=lamp.map(function(a){return [a[0],0.8,a[2],1,1,1];}),heads=lamp.map(function(a){return [a[0],1.65,a[2],1,1,1];});
+  inst(new T.CylinderGeometry(0.04,0.05,1.6,5),M('#555a60'),poles);inst(new T.BoxGeometry(0.3,0.12,0.3),lanternMat,heads);
+  /* voitures */
+  var cc=['#e94b4b','#3a7bd5','#f2c94c','#6bc48b','#9a6ad0','#f08a24','#e8e8e8','#2f3542'];
+  function addCar(ax,lane,dir,a,b,sp){
+    var g=car(envG,0,0,cc[Math.floor(r()*cc.length)],0),t=a+r()*(b-a);
+    envCars.push({g:g,ax:ax,lane:lane,dir:dir,a:a,b:b,t:t,sp:sp*(0.8+r()*0.5)});
+  }
+  for(i=0;i<3;i++)addCar('x',ZB-0.8,1,X0,X1,2.6);
+  for(i=0;i<3;i++)addCar('x',ZB+0.8,-1,X0,X1,2.6);
+  for(i=0;i<2;i++)addCar('x',ZF-0.8,1,X0,X1,2.6);
+  for(i=0;i<2;i++)addCar('x',ZF+0.8,-1,X0,X1,2.6);
+  for(i=0;i<2;i++)addCar('z',XL-0.8,1,ZB,ZF,2.6);
+  for(i=0;i<2;i++)addCar('z',XL+0.8,-1,ZB,ZF,2.6);
+  for(i=0;i<2;i++)addCar('z',XR-0.8,1,ZB,ZF,2.6);
+  for(i=0;i<2;i++)addCar('z',XR+0.8,-1,ZB,ZF,2.6);
+  for(i=0;i<3;i++)addCar('x',D+5.2,-1,-23,W+27,2.4);
+  /* eau */
+  var ponds=[[-38,30,7,5],[W+42,D+12,8,5.5],[W*0.5-30,-44,6,4.5]];
+  var cyl1=new T.CylinderGeometry(1,1,1,24);
+  ponds.forEach(function(p){
+    var s=new T.Mesh(cyl1,shoreMat);s.scale.set(p[2]+1.1,0.02,p[3]+1.1);s.position.set(p[0],0.01,p[1]);envG.add(s);
+    var w=new T.Mesh(cyl1,waterMat);w.scale.set(p[2],0.03,p[3]);w.position.set(p[0],0.02,p[1]);envG.add(w);
+    for(var k=0;k<4;k++){var a=r()*6.28;miniRock(p[0]+Math.cos(a)*(p[2]+0.5),p[1]+Math.sin(a)*(p[3]+0.5),0.3+r()*0.3);}
+    for(var l=0;l<5;l++){var a2=r()*6.28,d2=r()*0.7;var lp=new T.Mesh(cyl1,M('#5faa57'));lp.scale.set(0.35,0.02,0.35);lp.position.set(p[0]+Math.cos(a2)*p[2]*d2,0.04,p[1]+Math.sin(a2)*p[3]*d2);envG.add(lp);}
+  });
+  var rv=[[-50,-62],[-44,-38],[-50,-14],[-44,12],[-51,38],[-45,64],[-52,92]];
+  for(i=0;i<rv.length-1;i++){
+    var dx=rv[i+1][0]-rv[i][0],dz=rv[i+1][1]-rv[i][1],len=Math.sqrt(dx*dx+dz*dz)+1;
+    var seg=bx(envG,4.6,0.04,len,waterMat,(rv[i][0]+rv[i+1][0])/2,0.0,(rv[i][1]+rv[i+1][1])/2);seg.rotation.y=Math.atan2(dx,dz);
+  }
+  /* champs */
+  var padx=W+44,padz=-14;
+  bx(envG,16,0.05,10,'#c9d77e',padx,0,padz);
+  for(i=0;i<4;i++)bx(envG,15,0.07,0.9,'#6fb4d6',padx,0,padz-3.6+i*2.4);
+  for(i=0;i<4;i++)bx(envG,15,0.09,0.5,'#7fb84f',padx,0,padz-2.4+i*2.4);
+  var tc=['#e94b6a','#f2c94c','#ffffff','#b56ad0','#f08a24'],tx=W*0.5+24,tz=-33;
+  bx(envG,13,0.04,8,'#8fc07a',tx,0,tz);
+  for(i=0;i<5;i++)bx(envG,12,0.08,1.0,tc[i],tx,0,tz-3+i*1.5);
+  /* montagnes et collines */
+  var cone=new T.ConeGeometry(1,1,16),mt=new T.Mesh(cone,M('#6b7fae'));mt.scale.set(36,28,36);mt.position.set(W*0.5-5,14,-94);envG.add(mt);
+  var sn=new T.Mesh(cone,M('#f4f8fb'));sn.scale.set(12,9.4,12);sn.position.set(W*0.5-5,23.3,-94);envG.add(sn);
+  var m2=new T.Mesh(cone,M('#7d93a8'));m2.scale.set(22,14,22);m2.position.set(W*0.5+30,7,-90);envG.add(m2);
+  var ico=new T.IcosahedronGeometry(1,1);
+  [[-75,-46,22,7,18],[W+82,-48,24,9,18],[-80,64,20,8,16],[W+86,D+58,22,8,18],[W*0.5+10,D+84,28,7,16],[-30,-70,18,6,14]].forEach(function(h){
+    var m=new T.Mesh(ico,M('#7fb06a'));m.scale.set(h[2],h[3],h[4]);m.position.set(h[0],0,h[1]);envG.add(m);
+  });
+  /* forêts, prés et fleurs */
+  var plots=NBK.map(plotOf);
+  function nearPlot(x,z,m){for(var q=0;q<plots.length;q++){var p=plots[q];if(Math.abs(x-p.x)<p.w/2+m&&Math.abs(z-p.z)<p.d/2+m)return true;}return false;}
+  function blocked(x,z){
+    if(x>-4&&x<W+4&&z>-4&&z<D+7.5)return true;
+    if(nearPlot(x,z,1.8))return true;
+    if(Math.abs(z-(D+3.95))<4.2&&x>-27&&x<W+30)return true;
+    if(Math.abs(z-ZB)<3.4&&x>X0-4&&x<X1+4)return true;
+    if(Math.abs(z-ZF)<3.4&&x>X0-4&&x<X1+4)return true;
+    if((Math.abs(x-XL)<3.4||Math.abs(x-XR)<3.4)&&z>ZB-4&&z<ZF+4)return true;
+    if(x>-58&&x<-37)return true;
+    if(x>padx-9&&x<padx+9&&z>padz-6&&z<padz+6)return true;
+    if(x>tx-7.5&&x<tx+7.5&&z>tz-5&&z<tz+5)return true;
+    for(var q=0;q<ponds.length;q++){var p=ponds[q];var ex=(x-p[0])/(p[2]+2.5),ez=(z-p[1])/(p[3]+2.5);if(ex*ex+ez*ez<1)return true;}
+    return false;
+  }
+  var tr=[],br=[[],[],[]],pn=[],fl=[[],[],[]];
+  for(x=-72;x<W+78;x+=3.1){
+    for(z=-58;z<D+64;z+=3.1){
+      var px=x+r()*2.4,pz=z+r()*2.4,roll=r(),kind=r(),sc=r();
+      if(blocked(px,pz))continue;
+      var inside=px>X0&&px<X1&&pz>ZB&&pz<ZF;
+      if(roll>(inside?0.2:0.78)){
+        if(inside&&roll>0.78){var fi=Math.floor(kind*3);fl[fi].push([px,0.07,pz,1,1,1]);fl[fi].push([px+0.3,0.07,pz+0.2,1,1,1]);}
+        continue;
+      }
+      var s=(inside?0.9:1.3)+sc*(inside?0.5:0.9);
+      tr.push([px,0.25*s,pz,s,s,s]);
+      if(kind<0.35){pn.push([px,1.1*s,pz,s,s,s]);pn.push([px,1.75*s,pz,s*0.65,s*0.65,s*0.65]);}
+      else{var k3=Math.floor(sc*3)%3;br[k3].push([px,0.85*s,pz,s,s*1.15,s]);br[k3].push([px+0.1*s,1.35*s,pz,s*0.65,s*0.7,s*0.65]);}
+    }
+  }
+  inst(new T.CylinderGeometry(0.09,0.12,0.5,6),M('#7a5a3a'),tr);
+  var blob=new T.IcosahedronGeometry(0.55,0);for(i=0;i<3;i++)inst(blob,FOL[i],br[i]);
+  inst(new T.ConeGeometry(0.6,1.1,7),pineMat,pn);
+  var fc=['#ffffff','#ff9ec0','#ffd84a'];for(i=0;i<3;i++)inst(new T.BoxGeometry(0.14,0.14,0.14),M(fc[i]),fl[i]);
+}
+function miniRock(x,z,s){var m=new T.Mesh(gcache.ico||(gcache.ico=new T.IcosahedronGeometry(0.55,0)),M('#8d9094'));m.position.set(x,0.1,z);m.scale.set(s,s*0.6,s);envG.add(m);}
+function envUpdate(dt){
+  for(var i=0;i<envCars.length;i++){
+    var c=envCars[i];c.t+=c.dir*c.sp*dt;
+    if(c.t>c.b)c.t=c.a;else if(c.t<c.a)c.t=c.b;
+    if(c.ax==='x'){c.g.position.set(c.t,0.04,c.lane);c.g.rotation.y=c.dir>0?0:Math.PI;}
+    else{c.g.position.set(c.lane,0.04,c.t);c.g.rotation.y=c.dir>0?-Math.PI/2:Math.PI/2;}
+  }
 }
 
 /* ---------- Démarrage ---------- */
