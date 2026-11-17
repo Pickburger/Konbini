@@ -72,7 +72,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 .sc-btns .btn{flex:1;min-width:0;font-size:15px;padding:0 8px}
 .x{width:36px;height:36px;min-width:36px;min-height:36px;border-radius:12px;border:0;background:var(--panel-2);color:var(--ink);font-size:18px;cursor:pointer}
 #tabs{display:flex;gap:4px;padding:6px 6px 8px}
-.tab{flex:1;min-width:0;min-height:46px;border:0;border-radius:14px;background:transparent;color:var(--mute);font-family:var(--display);font-weight:600;font-size:12px;padding:0 1px;cursor:pointer}
+.tab{flex:1;min-width:0;min-height:46px;border:0;border-radius:14px;background:transparent;color:var(--mute);font-family:var(--display);font-weight:600;font-size:10.5px;padding:0;cursor:pointer}
 .tab.on{background:var(--panel-2);color:var(--ink);box-shadow:inset 0 -3px 0 var(--mint)}
 .tab.pulse{animation:pl 1.4s ease-in-out infinite}
 @keyframes pl{50%{background:#6b3b35;color:#ffd7cf}}
@@ -132,6 +132,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
       <button class="tab" data-tab="staff">Équipe</button>
       <button class="tab" data-tab="gacha">Gacha</button>
       <button class="tab" data-tab="city">Ville</button>
+      <button class="tab" data-tab="deliv">Livreur</button>
       <button class="tab" data-tab="shop">Magasin</button>
     </nav>
   </div>
@@ -608,7 +609,7 @@ var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 var FRONT=[[0,1],[1,0],[0,-1],[-1,0]];
 
 /* ---------- État ---------- */
-var S={dn:5,money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},nb:{temple:0,park:0,school:0,station:0}};
+var S={dn:5,money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},nb:{temple:0,park:0,school:0,station:0,ramen:0,houses:0,arcade:0,office:0,onsen:0,clinic:0,stadium:0,mall:0}};
 var W=TIERS[0].w, D=TIERS[0].d;
 var stkMult=1, uid=0, occ=[], customers=[], staffActors=[], itemRoots=[];
 var placing=null, selected=null, tabOpen=null;
@@ -2557,6 +2558,13 @@ function spawnCustomer(type,o){
   if(type==='pilgrim'){var rc=pick(['#7a5a9a','#3f6f8f','#b5503f','#2f7a5f']);look={shirt:rc,robe:rc,pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS),hat:Math.random()<0.4};}
   else if(type==='kid'){look={shirt:'#f4f4f4',pants:'#2a3f6f',hair:pick(HAIRS),skin:pick(SKINS),cap:'#f2c94c',pack:pick(['#c0392b','#2f7a5f','#3a7bd5','#e58fb5'])};sc=0.78;}
   else if(type==='suit'){look={shirt:'#2f3542',pants:'#2f3542',hair:pick(HAIRS),skin:pick(SKINS),tie:pick(['#c0392b','#3a7bd5','#f2c94c']),cse:'#3b2f2f'};}
+  else if(type==='foodie'){look={shirt:pick(['#f0e6d2','#c0392b','#3a6ea5']),pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS),hat:Math.random()<0.3};}
+  else if(type==='gamer'){look={shirt:pick(['#7a5a9a','#2f7a5f','#e86f6f']),pants:'#2a3f6f',hair:pick(HAIRS),skin:pick(SKINS),cap:pick(SHIRTS),pack:'#333333'};sc=0.9;}
+  else if(type==='worker'){look={shirt:'#6b7a8f',pants:'#3a3f4a',hair:pick(HAIRS),skin:pick(SKINS),tie:'#ffffff',cse:'#2b2b2b'};}
+  else if(type==='bather'){var yc=pick(['#4a6fa5','#7a5a9a','#2f7a5f']);look={shirt:yc,robe:yc,pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS)};}
+  else if(type==='patient'){look={shirt:'#e8f3ee',pants:'#8fa6a0',hair:pick(HAIRS),skin:pick(SKINS)};}
+  else if(type==='fan'){look={shirt:pick(['#e94b4b','#4a6fa5']),pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS),cap:pick(['#e94b4b','#4a6fa5'])};}
+  else if(type==='shopper'){look={shirt:pick(SHIRTS),pants:pick(PANTS),hair:pick(HAIRS),skin:pick(SKINS),pack:pick(['#e58fb5','#f2c94c','#6bc48b'])};}
   else if(type==='walker'){look={shirt:pick(['#f2b84b','#e86f6f','#6bc48b','#5aa7e0']),pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS),cap:Math.random()<0.5?pick(SHIRTS):null};}
   else look={shirt:pick(SHIRTS),pants:pick(PANTS),hair:pick(HAIRS),skin:pick(SKINS),cap:Math.random()<0.2?pick(SHIRTS):null};
   var g=makePerson(look);
@@ -2789,9 +2797,9 @@ function panBy(dx,dy){
   var wpp=(2*baseHalf/zoom)/innerHeight;
   camTarget.addScaledVector(rightV,-dx*wpp);
   camTarget.addScaledVector(fwdV,dy*wpp*1.73);
-  camTarget.x=clamp(camTarget.x,-5,W+7);camTarget.z=clamp(camTarget.z,-5,D+9);
+  camTarget.x=clamp(camTarget.x,-16,W+19);camTarget.z=clamp(camTarget.z,-14,D+22);
 }
-function setZoom(z){zoom=clamp(z,0.55,3.2);camera.zoom=zoom;camera.updateProjectionMatrix();}
+function setZoom(z){zoom=clamp(z,0.28,3.2);camera.zoom=zoom;camera.updateProjectionMatrix();}
 
 /* ---------- Interface ---------- */
 var toastT=null;
@@ -2923,6 +2931,8 @@ function renderSheet(){
     if(!got)h+='<div class="note">Rien pour l\'instant. Tentez votre chance !</div>';
   }else if(tabOpen==='city'){
     h+=renderCity();
+  }else if(tabOpen==='deliv'){
+    h+=renderDeliv();
   }else if(tabOpen==='shop'){
     var nt=TIERS[S.tier+1];
     h+='<div class="h3">Agrandissement</div>';
@@ -3201,7 +3211,7 @@ function applySave(d){
   S.items.slice().forEach(function(it){scene.remove(it.g);});
   S.items=[];itemRoots=[];
   S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.dn=(typeof d.dn==='number')?d.dn:5;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
-  S.dl=Object.assign({on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},d.dl||{});S.nb=Object.assign({temple:0,park:0,school:0,station:0},d.nb||{});dlPend=0;
+  S.dl=Object.assign({on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},d.dl||{});S.nb=Object.assign({temple:0,park:0,school:0,station:0,ramen:0,houses:0,arcade:0,office:0,onsen:0,clinic:0,stadium:0,mall:0},d.nb||{});dlPend=0;
   S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
   W=TIERS[S.tier].w;D=TIERS[S.tier].d;
   buildShell();
@@ -3630,13 +3640,31 @@ var NBD={
   school:{n:'École',e:'🏫',rank:7,costs:[90000,280000,840000],who:'Écoliers',buy:'snacks, glaces, papeterie et jouets (en groupe, à la sortie des classes)',lv:['Bâtiment, horloge et drapeau','Gymnase, clôture et panier de basket','Tour de l\'horloge et terrain de sport']},
   station:{n:'Gare',e:'🚉',rank:9,costs:[160000,520000,1600000],who:'Salariés',buy:'café, bentos, magazines et billets (aux heures de pointe et à chaque train)',lv:['Quai, abri et train toutes les 1 à 2 minutes','Quai allongé et guichet','Passerelle, tour d\'horloge et train plus long']}
 };
-var NBK=['temple','park','school','station'];
+NBD.ramen={n:'Ramen-ya',e:'🍜',cat:'c',rank:3,costs:[15000,50000,160000],who:'Gourmets',buy:'nouilles, thé, oden et saké (surtout le midi et le soir)',lv:['Petit comptoir à ramen','Comptoir et lanternes de pierre','Enseigne géante et salle annexe']};
+NBD.houses={n:'Maisons',e:'🏠',cat:'h',rank:4,costs:[25000,80000,250000],who:'Voisins',buy:'lait, bentos, snacks et boissons (matin et soir)',lv:['Deux maisons','Quatre maisons et arbres','Six maisons, voitures et clôtures']};
+NBD.arcade={n:'Salle d\'arcade',e:'🕹️',cat:'c',rank:8,costs:[150000,450000,1300000],who:'Joueurs',buy:'grues, gachapons, boissons et snacks (après-midi et soir)',lv:['Salle néon','Rangée de bornes à l\'entrée','Deuxième étage et anneau néon']};
+NBD.office={n:'Tour de bureaux',e:'🏢',cat:'c',rank:10,costs:[300000,900000,2700000],who:'Employés',buy:'café, bentos, sandwichs et distributeur (rush du midi)',lv:['Petite tour','Tour plus haute et annexe','Tours jumelles et jardin']};
+NBD.onsen={n:'Bain public',e:'♨️',cat:'p',rank:11,costs:[500000,1500000,4500000],who:'Baigneurs',buy:'lait, saké, glaces et boissons (fin de journée)',lv:['Bain avec cheminée fumante','Bain extérieur et clôture de bambou','Pavillon, lanternes et jardin']};
+NBD.clinic={n:'Clinique',e:'🏥',cat:'p',rank:12,costs:[800000,2400000,7200000],who:'Patients',buy:'thé, salades, lait et sandwichs (en journée)',lv:['Clinique avec croix verte','Ambulance et gyrophare','Étage et héliport']};
+NBD.stadium={n:'Stade de baseball',e:'⚾',cat:'p',rank:13,costs:[1500000,4500000,13000000],who:'Partisans',buy:'boissons, yakitori, saké et nikuman (en groupes, les soirs de match)',lv:['Terrain et losange','Estrade et projecteurs','Gradins complets et tableau']};
+NBD.mall={n:'Centre commercial',e:'🛍️',cat:'c',rank:14,costs:[3000000,9000000,27000000],who:'Magasineurs',buy:'papeterie, jouets, magazines, fleurs et souvenirs (en journée)',lv:['Galerie marchande','Deuxième étage et stationnement','Atrium vitré et drapeaux']};
+NBD.temple.cat='p';NBD.park.cat='p';NBD.school.cat='p';NBD.station.cat='p';
+var NBK=['ramen','houses','temple','park','school','arcade','station','office','onsen','clinic','stadium','mall'];
 function plotOf(k){
+  var hx=W*0.5;
   switch(k){
     case 'temple':return {x:-6.8,z:D*0.5,w:8.6,d:9.2};
     case 'school':return {x:W+7.4,z:D*0.5,w:8.4,d:9.2};
     case 'park':return {x:DOORX+6.5,z:D+11.2,w:10.4,d:7.4};
-    default:return {x:DOORX-6.2,z:D+11.2,w:10.4,d:7.4};
+    case 'station':return {x:DOORX-6.2,z:D+11.2,w:10.4,d:7.4};
+    case 'ramen':return {x:hx-5.2,z:-5.6,w:6.6,d:5.6};
+    case 'houses':return {x:hx+2.6,z:-5.6,w:8.0,d:5.6};
+    case 'arcade':return {x:hx-5.2,z:-12.0,w:7.4,d:6.0};
+    case 'office':return {x:hx+3.0,z:-12.0,w:7.0,d:5.8};
+    case 'onsen':return {x:-16.2,z:D*0.5,w:8.0,d:6.6};
+    case 'clinic':return {x:W+16.6,z:D*0.5,w:8.0,d:7.0};
+    case 'stadium':return {x:DOORX+7.4,z:D+20.4,w:11,d:8};
+    default:return {x:DOORX-6.6,z:D+20.4,w:10,d:7.5};
   }
 }
 function inPlot(x,z){
@@ -3783,7 +3811,101 @@ function bStation(g,L){
     bx(g,0.6,2.1,0.6,'#9aa3a8',-4.3,0.03,-2.1);bx(g,0.6,2.1,0.6,'#9aa3a8',-4.3,0.03,1.9);
   }
 }
-var NBB={temple:bTemple,park:bPark,school:bSchool,station:bStation};
+/* ---------- Nouveaux lieux ---------- */
+function house(g,x,z,wall,roof,s){
+  s=s||1;
+  bx(g,1.7*s,0.95,1.3*s,wall,x,0.03,z);bx(g,1.9*s,0.16,1.5*s,roof,x,0.98,z);bx(g,1.3*s,0.14,1.0*s,roof,x,1.12,z);
+  bx(g,0.32,0.6,0.05,'#6b4a2b',x-0.4*s,0.03,z+0.66*s);bx(g,0.4,0.34,0.05,winMat,x+0.4*s,0.45,z+0.66*s);
+}
+function car(g,x,z,c,ry){
+  var m=new T.Group();m.position.set(x,0,z);m.rotation.y=ry||0;g.add(m);
+  bx(m,0.9,0.22,0.45,c,0,0.06,0);bx(m,0.5,0.2,0.4,c,-0.05,0.28,0);bx(m,0.36,0.1,0.42,winMat,-0.05,0.3,0);
+}
+function windowGrid(g,x0,x1,y0,y1,z,dx,dy){for(var y=y0;y<=y1;y+=dy)for(var x=x0;x<=x1;x+=dx)bx(g,0.34,0.3,0.04,winMat,x,y,z);}
+function bRamen(g,L){
+  ground(g,6.6,5.6,'#d8cdb8');
+  if(L===0){sale(g);return;}
+  bx(g,3.6,1.3,2.2,'#a8643f',0,0.03,-1.2);bx(g,3.9,0.14,2.5,'#3b2a22',0,1.33,-1.2);
+  bx(g,1.8,0.4,0.05,textMat('ラーメン','#c0392b','#ffffff',256,80,34),0,1.0,-0.07);
+  bx(g,0.9,0.5,0.04,'#c0392b',-1.2,0.5,-0.08);bx(g,0.9,0.5,0.04,'#f2ecd8',1.2,0.5,-0.08);bx(g,0.7,0.7,0.05,'#5a3a22',0,0.03,-0.08);
+  var st=[];for(var i=0;i<3;i++){var m=bx(g,0.18,0.18,0.18,'#f4f4f4',-0.9+i*0.9,1.5,-1.2);st.push(m);}
+  nbTicks.push(function(t){st.forEach(function(m,i){m.position.y=1.5+((t*0.4+i*0.33)%1)*0.8;m.scale.setScalar(1-((t*0.4+i*0.33)%1)*0.6);});});
+  if(L>=2){for(var k=0;k<4;k++){cyl(g,0.12,0.12,0.22,'#7a5a3a',-1.5+k*1.0,0.03,1.0,8);}bx(g,3.6,0.12,0.5,'#8a5a3a',0,0.3,1.0);stoneLantern(g,-2.7,0.6);stoneLantern(g,2.7,0.6);}
+  if(L>=3){bx(g,2.2,1.0,1.8,'#c07d4f',2.4,0.03,-1.6);bx(g,2.4,0.12,2.0,'#3b2a22',2.4,1.03,-1.6);cyl(g,0.7,0.5,0.5,'#f4f4f4',0,1.55,-1.2,12);cyl(g,0.55,0.55,0.12,'#e8b54a',0,2.05,-1.2,12);}
+}
+function bHouses(g,L){
+  ground(g,8.0,5.6,'#9bd68b');
+  if(L===0){sale(g);return;}
+  var cols=[['#f1e6cf','#c4693f'],['#e3d3b8','#4a6fa5'],['#d9e6d3','#7a5a9a'],['#f2d9c4','#2f7a5f'],['#e8e0f0','#c0392b'],['#f4efc9','#3a6e8f']];
+  var pos=[[-2.6,-1.2],[0,-1.2],[2.6,-1.2],[-2.6,1.3],[0,1.3],[2.6,1.3]],n=L===1?2:L===2?4:6;
+  for(var i=0;i<n;i++)house(g,pos[i][0],pos[i][1],cols[i][0],cols[i][1],1);
+  if(L>=2){miniTree(g,-3.7,0.1,COLS_TREE[1],1.0);miniTree(g,3.7,0.1,COLS_TREE[0],1.0);}
+  if(L>=3){car(g,-1.3,2.4,'#e94b4b',0);car(g,1.4,2.3,'#4a8fd0',0);for(var f=-3.6;f<=3.6;f+=0.6)bx(g,0.05,0.3,0.05,'#ffffff',f,0.03,2.75);}
+}
+function bArcade(g,L){
+  ground(g,7.4,6.0,'#c7c3d6');
+  if(L===0){sale(g);return;}
+  bx(g,4.6,1.6,2.6,'#3a3f6b',0,0.03,-1.5);bx(g,4.8,0.12,2.8,'#242748',0,1.63,-1.5);
+  bx(g,3.0,0.5,0.05,textMat('ARCADE','#1b1b3a','#ff6bd6',256,96,40),0,1.1,-0.17);
+  bx(g,0.8,0.8,0.05,'#ffd35a',-1.5,0.03,-0.17);bx(g,0.7,0.7,0.05,'#5a3a22',1.5,0.03,-0.17);
+  if(L>=2){var cc=['#e94b4b','#3a7bd5','#f2c94c','#6bc48b'];for(var i=0;i<4;i++){bx(g,0.55,1.0,0.55,cc[i],-1.8+i*1.2,0.03,0.9);bx(g,0.5,0.4,0.05,lanternMat,-1.8+i*1.2,0.5,0.62);}}
+  if(L>=3){bx(g,4.6,1.0,2.6,'#2b2e57',0,1.75,-1.5);windowGrid(g,-1.8,1.8,2.1,2.3,-0.17,0.9,0.5);
+    var ring=new T.Mesh(new T.TorusGeometry(0.7,0.08,6,20),new T.MeshBasicMaterial({color:'#6ff2ff'}));ring.position.set(2.0,3.3,-1.5);g.add(ring);
+    nbTicks.push(function(t){ring.rotation.y=t*1.5;ring.rotation.x=0.3;});}
+}
+function bOffice(g,L){
+  ground(g,7.0,5.8,'#cfd3d6');
+  if(L===0){sale(g);return;}
+  var h=L===1?3.0:L===2?4.6:6.2;
+  bx(g,3.0,h,2.4,'#7f95aa',-0.8,0.03,-1.0);bx(g,3.2,0.14,2.6,'#566a7c',-0.8,h+0.03,-1.0);
+  windowGrid(g,-1.9,0.3,0.7,h-0.2,0.21,0.7,0.62);bx(g,0.8,0.7,0.05,'#2b3a38',-0.8,0.03,0.21);
+  if(L>=2){bx(g,2.2,1.6,2.0,'#9fb0bf',2.3,0.03,-0.6);bx(g,2.4,0.1,2.2,'#566a7c',2.3,1.63,-0.6);windowGrid(g,1.7,2.9,0.5,1.3,0.41,0.7,0.5);}
+  if(L>=3){bx(g,2.2,h*0.8,2.0,'#8aa0b4',2.3,1.7,-1.4);windowGrid(g,1.7,2.9,2.2,h*0.8+1.2,-0.39,0.7,0.62);miniTree(g,-2.9,1.9,COLS_TREE[0],1.0);miniTree(g,3.0,2.0,COLS_TREE[1],1.0);}
+}
+function bOnsen(g,L){
+  ground(g,8.0,6.6,'#d9cdb4');
+  if(L===0){sale(g);return;}
+  bx(g,4.2,1.2,2.4,'#8a5a3a',-0.6,0.03,-1.6);bx(g,4.6,0.16,2.8,'#3b4a5a',-0.6,1.23,-1.6);bx(g,3.2,0.14,2.0,'#3b4a5a',-0.6,1.37,-1.6);
+  bx(g,1.8,0.5,0.05,textMat('湯','#3a6ea5','#ffffff',256,96,52),-0.6,0.6,-0.37);bx(g,0.6,0.7,0.05,'#5a3a22',-1.9,0.03,-0.37);
+  cyl(g,0.18,0.22,2.6,'#8a6a5a',2.1,0.03,-2.6,8);
+  var puffs=[];for(var i=0;i<3;i++){puffs.push(bx(g,0.3,0.3,0.3,'#f4f4f4',2.1,2.7,-2.6));}
+  nbTicks.push(function(t){puffs.forEach(function(m,i){var p=(t*0.35+i*0.33)%1;m.position.y=2.7+p*1.2;m.position.x=2.1+p*0.6;m.scale.setScalar(1.2-p*0.8);});});
+  if(L>=2){bx(g,2.8,0.12,1.8,'#7a6a5a',-0.8,0.03,1.3);bx(g,2.5,0.1,1.5,'#6fc4e8',-0.8,0.1,1.3);for(var r=0;r<5;r++)bx(g,0.3,0.2,0.3,'#8a8a84',-2.0+r*0.6,0.05,2.1);for(var f=-2.4;f<=0.8;f+=0.4)bx(g,0.08,0.8,0.08,'#8fb36a',f,0.03,2.5);}
+  if(L>=3){bx(g,2.0,0.9,1.8,'#9a6a44',3.0,0.03,0.6);bx(g,2.3,0.14,2.1,'#3b4a5a',3.0,0.93,0.6);stoneLantern(g,2.0,2.4);stoneLantern(g,-3.4,0.4);miniTree(g,3.2,2.3,COLS_TREE[1],1.2);}
+}
+function bClinic(g,L){
+  ground(g,8.0,7.0,'#d6dcd9');
+  if(L===0){sale(g);return;}
+  bx(g,4.4,1.4,2.6,'#f4f7f6',-0.6,0.03,-1.8);bx(g,4.6,0.12,2.8,'#d5e4ec',-0.6,1.43,-1.8);
+  bx(g,0.9,0.22,0.05,'#2fa36b',-0.6,1.0,-0.47);bx(g,0.22,0.9,0.05,'#2fa36b',-0.6,0.7,-0.47);
+  windowGrid(g,-2.2,1.0,0.55,0.9,-0.5,1.0,0.4);bx(g,0.9,0.8,0.05,'#6fb4d6',-0.6,0.03,-0.46);
+  if(L>=2){bx(g,1.1,0.55,0.55,'#ffffff',2.6,0.04,1.4);bx(g,0.5,0.4,0.55,'#ffffff',3.3,0.04,1.4);bx(g,1.1,0.1,0.57,'#c0392b',2.6,0.25,1.4);var bl=bx(g,0.2,0.1,0.2,lanternMat,2.6,0.6,1.4);nbTicks.push(function(t){bl.visible=Math.sin(t*8)>0;});}
+  if(L>=3){bx(g,4.4,1.0,2.6,'#eef3f2',-0.6,1.5,-1.8);bx(g,4.6,0.1,2.8,'#d5e4ec',-0.6,2.53,-1.8);windowGrid(g,-2.2,1.0,1.8,2.2,-0.47,1.0,0.4);
+    cyl(g,0.9,0.9,0.05,'#4a5058',-0.6,2.63,-1.8,16);bx(g,0.12,0.04,0.6,'#ffffff',-0.9,2.7,-1.8);bx(g,0.12,0.04,0.6,'#ffffff',-0.3,2.7,-1.8);bx(g,0.6,0.04,0.12,'#ffffff',-0.6,2.7,-1.8);miniTree(g,3.2,-0.4,COLS_TREE[2],1.1);}
+}
+function bStadium(g,L){
+  ground(g,11,8,'#74b866');
+  if(L===0){sale(g);return;}
+  var d=bx(g,3.2,0.03,3.2,'#c59a6a',0,0.04,0.4);d.rotation.y=Math.PI/4;
+  bx(g,0.3,0.04,0.3,'#ffffff',0,0.06,2.5);bx(g,0.25,0.04,0.25,'#ffffff',2.2,0.06,0.4);bx(g,0.25,0.04,0.25,'#ffffff',-2.2,0.06,0.4);bx(g,0.25,0.04,0.25,'#ffffff',0,0.06,-1.6);
+  bx(g,8.4,0.03,0.08,'#ffffff',0,0.05,-3.2);
+  if(L>=2){for(var s=0;s<4;s++)bx(g,8.0,0.3+s*0.3,0.5,s%2?'#4a6fa5':'#e94b4b',0,0.03,-3.7+s*0.5-0.0);
+    [-4.9,4.9].forEach(function(x){cyl(g,0.06,0.06,3.2,'#888',x,0.03,-3.4,6);bx(g,0.9,0.4,0.2,lanternMat,x,3.2,-3.4);});}
+  if(L>=3){bx(g,0.5,1.6,6.8,'#4a6fa5',-5.2,0.03,0);bx(g,0.5,1.0,6.8,'#e94b4b',5.2,0.03,0);
+    bx(g,2.6,0.9,0.15,textMat('3 : 2','#1b2a1b','#ffd35a',256,96,44),0,3.0,-3.6);cyl(g,0.05,0.05,2.2,'#777',-1,0.03,-3.6,6);cyl(g,0.05,0.05,2.2,'#777',1,0.03,-3.6,6);}
+}
+function bMall(g,L){
+  ground(g,10,7.5,'#d4d0c6');
+  if(L===0){sale(g);return;}
+  bx(g,6.0,1.5,3.0,'#e8d9c4',0,0.03,-2.0);bx(g,6.2,0.14,3.2,'#1f6f6a',0,1.53,-2.0);
+  bx(g,2.2,0.5,0.05,textMat('MALL','#1f6f6a','#ffffff',256,96,44),0,1.15,-0.47);bx(g,2.6,0.8,0.05,winMat,-1.6,0.3,-0.47);bx(g,2.6,0.8,0.05,winMat,1.6,0.3,-0.47);
+  if(L>=2){bx(g,6.0,1.3,3.0,'#efe3d0',0,1.67,-2.0);bx(g,6.2,0.12,3.2,'#1f6f6a',0,2.97,-2.0);windowGrid(g,-2.4,2.4,2.0,2.2,-0.47,0.8,0.5);
+    var cc=['#e94b4b','#3a7bd5','#f2c94c','#6bc48b','#9a6ad0'];for(var i=0;i<5;i++)car(g,-3.2+i*1.5,1.6,cc[i],Math.PI/2);for(var k=0;k<=5;k++)bx(g,0.05,0.02,0.8,'#ffffff',-3.95+k*1.5,0.04,1.6);}
+  if(L>=3){cyl(g,1.2,1.2,1.0,'#9fd6e8',2.0,3.0,-2.0,16);cyl(g,0.9,1.2,0.4,'#1f6f6a',2.0,4.0,-2.0,16);
+    var fl=[];for(var j=0;j<3;j++){cyl(g,0.04,0.04,2.0,'#cfcfcf',-3.4+j*0.5,0.03,2.9,5);fl.push(bx(g,0.4,0.25,0.02,['#e94b4b','#f2c94c','#3a7bd5'][j],-3.2+j*0.5,1.7,2.9));}
+    nbTicks.push(function(t){fl.forEach(function(m,i){m.rotation.y=Math.sin(t*3+i)*0.3;});});}
+}
+var NBB={temple:bTemple,park:bPark,school:bSchool,station:bStation,ramen:bRamen,houses:bHouses,arcade:bArcade,office:bOffice,onsen:bOnsen,clinic:bClinic,stadium:bStadium,mall:bMall};
 function rebuildNb(){
   while(nbG.children.length)nbG.remove(nbG.children[0]);
   nbTicks=[];
@@ -3836,25 +3958,42 @@ var CT={
   kid:{sm:0.55,sp:[1.6,2.1],fav:{snack:1,icecream:1,drink:1,stationery:1,toys:1,magazine:1,crane:1,gacha:1}},
   suit:{sm:1.4,sp:[2.0,2.6],fav:{coffee:1,bento:1,onigiri:1,magazine:1,drink:1,tickets:1,sandwich:1,robotbar:1,atm:1}}
 };
-var nbAcc={pilgrim:0,walker:0,kid:0,suit:0};
+CT.foodie={sm:1.1,sp:[1.4,1.8],fav:{noodle:1,tea:1,oden:1,sake:1,onigiri:1,yakitori:1}};
+CT.resident={sm:1,sp:[1.2,1.6],fav:{milk:1,bento:1,snack:1,drink:1,sandwich:1,vending:1,magazine:1}};
+CT.gamer={sm:0.9,sp:[1.6,2.1],fav:{crane:1,gacha:1,drink:1,snack:1,toys:1,vending:1}};
+CT.worker={sm:1.5,sp:[2.0,2.5],fav:{coffee:1,bento:1,sandwich:1,onigiri:1,drink:1,atm:1,robotbar:1}};
+CT.bather={sm:1.3,sp:[1.2,1.5],fav:{milk:1,sake:1,icecream:1,drink:1,vending:1,magazine:1}};
+CT.patient={sm:1.2,sp:[1.0,1.3],fav:{tea:1,salad:1,milk:1,sandwich:1,drink:1}};
+CT.fan={sm:1.4,sp:[1.6,2.0],fav:{drink:1,yakitori:1,snack:1,sake:1,nikuman:1,souvenir:1}};
+CT.shopper={sm:1.6,sp:[1.4,1.8],fav:{stationery:1,toys:1,magazine:1,flowers:1,souvenir:1,tickets:1}};
+var NBT={pilgrim:'temple',walker:'park',kid:'school',suit:'station',foodie:'ramen',resident:'houses',gamer:'arcade',worker:'office',bather:'onsen',patient:'clinic',fan:'stadium',shopper:'mall'};
+var nbAcc={};Object.keys(NBT).forEach(function(k){nbAcc[k]=0;});
 function nbRate(type){
-  var L=S.nb[{pilgrim:'temple',walker:'park',kid:'school',suit:'station'}[type]];
+  var L=S.nb[NBT[type]];
   if(!L)return 0;
   var h=S.clock/60,w=S.wx.cur,r=0;
   if(type==='pilgrim')r=0.022*L*(h>=6&&h<19?1:0.3);
   else if(type==='walker')r=0.028*L*(h>=7&&h<20?1:0.15)*({rain:0.2,snow:0.3,heat:0.9,clear:1.3}[w]);
   else if(type==='kid')r=0.02*L*(h>=15&&h<18?2.4:(h>=7.5&&h<8.7)?1.6:(h>=12&&h<13?0.8:0.08));
-  else r=0.012*L*(((h>=6.5&&h<9.5)||(h>=17&&h<20.5))?2:0.25);
+  else if(type==='suit')r=0.012*L*(((h>=6.5&&h<9.5)||(h>=17&&h<20.5))?2:0.25);
+  else if(type==='foodie')r=0.024*L*(((h>=11&&h<14)||(h>=17.5&&h<21.5))?2:0.3);
+  else if(type==='resident')r=0.03*L*(((h>=6&&h<9)||(h>=16&&h<21))?1.6:0.3);
+  else if(type==='gamer')r=0.022*L*(h>=14&&h<23?1.6:0.1);
+  else if(type==='worker')r=0.016*L*(((h>=11.5&&h<13.5))?2.6:(h>=7.5&&h<9)?1.6:(h>=9&&h<18)?0.4:0.05);
+  else if(type==='bather')r=0.02*L*(h>=16&&h<23?1.8:0.15);
+  else if(type==='patient')r=0.02*L*(h>=8&&h<18?1.2:0.08);
+  else if(type==='fan')r=0.008*L*(h>=17&&h<22.5?2.4:0.1);
+  else r=0.022*L*(h>=10&&h<20?1.5:0.05);
   return r*trafficMult();
 }
 function nbSpawn(dt){
   if(!(canServe()&&customers.length<maxCust()))return;
-  var types=['pilgrim','walker','kid','suit'];
+  var types=Object.keys(NBT);
   types.forEach(function(t){
     var r=nbRate(t);if(r<=0)return;
     nbAcc[t]+=dt*r;
     if(nbAcc[t]>=1){nbAcc[t]=Math.min(nbAcc[t]-1,1);
-      if(t==='kid'){var n=2+(Math.random()<0.5?1:0);for(var i=0;i<n;i++)spawnCustomer('kid',{off:i*0.55});}
+      if(t==='kid'||t==='fan'){var n=2+(Math.random()<0.5?1:0)+(t==='fan'?1:0);for(var i=0;i<n;i++)spawnCustomer(t,{off:i*0.55});}
       else spawnCustomer(t);
     }
   });
@@ -3884,7 +4023,10 @@ function renderCity(){
   h+='<div class="row"><div class="meta"><b>'+SEAS[si].e+' '+SEAS[si].n+' · jour '+dj+'/10</b><span>Il fait '+curTemp()+'°C dehors. Chaque saison dure 10 jours de jeu ; la neige ne tombe qu\'au froid, la canicule seulement l\'été.</span></div></div>';
   h+='<div class="row"><div class="meta"><b>'+WXN[w.cur].e+' '+WXN[w.cur].n+' · encore <span id="wxLeft">'+fmtT(w.left)+'</span></b><span>'+WXN[w.cur].t+'</span></div></div>';
   h+='<div class="note">Ensuite : '+nx.e+' '+nx.n.toLowerCase()+'. '+(w.next==='clear'?'':'Préparez : '+wxFavs(w.next)+'.')+'</div>';
-  h+='<div class="h3">Livraison à scooter</div>';
+  return h+'<div class="h3">Quartier</div>'+renderQuartier();
+}
+function renderDeliv(){
+  var h='<div class="h3">Livraison à scooter</div>';
   if(rank()<DL_RANK)h+='<div class="note">Disponible au rang ★'+DL_RANK+'.</div>';
   else if(!S.dl.on){
     h+='<div class="row"><div class="meta"><b>🛵 Service de livraison</b><span>Un livreur prend les commandes en ligne et les apporte à vélo-moteur. Chaque commande vide le stock des rayons et rapporte un supplément.</span></div><button class="btn" data-act="dlbuy" data-cost="'+DL_BUY+'">'+yen(DL_BUY)+'</button></div>';
@@ -3899,9 +4041,15 @@ function renderCity(){
     h+='<div class="row"><div class="meta"><b>Scooters · '+S.dl.fleet+'/3</b><span>Chaque scooter livre en parallèle.</span></div>'+
       (S.dl.fleet>=3?'<div class="btn off lk">Maximum</div>':'<button class="btn" data-act="dlup" data-k="fleet" data-cost="'+fc+'">'+yen(fc)+'</button>')+'</div>';
   }
-  h+='<div class="h3">Quartier</div>';
-  NBK.forEach(function(k){h+=nbLvlRow(k);});
-  h+='<div class="note">Chaque bâtiment amène de nouveaux clients, avec leurs goûts et leurs heures. Dézoomez pour voir tout le quartier.</div>';
+  return h;
+}
+function renderQuartier(){
+  var h='';
+  [['h','Habitations'],['c','Commerces'],['p','Lieux publics']].forEach(function(c){
+    h+='<div class="h3">'+c[1]+'</div>';
+    NBK.filter(function(k){return NBD[k].cat===c[0];}).sort(function(a,b){return NBD[a].rank-NBD[b].rank;}).forEach(function(k){h+=nbLvlRow(k);});
+  });
+  h+='<div class="note">Chaque bâtiment amène de nouveaux clients, avec leurs goûts et leurs heures. Dézoomez et déplacez la vue pour voir tout le quartier.</div>';
   return h;
 }
 function cityAct(a,b){
