@@ -833,6 +833,16 @@ var glowTex=(function(){
 var glowMat=new T.MeshBasicMaterial({map:glowTex,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});
 var glowSoft=new T.MeshBasicMaterial({map:glowTex,transparent:true,opacity:0,depthWrite:false,blending:T.AdditiveBlending});
 var glowGeo=new T.PlaneGeometry(1,1);
+/* Ombre de contact douce sous les objets, les gens, les voitures et les arbres. */
+var aoTex=(function(){
+  var c=document.createElement('canvas');c.width=c.height=64;var x=c.getContext('2d');
+  var gr=x.createRadialGradient(32,32,4,32,32,32);gr.addColorStop(0,'rgba(0,0,0,0.55)');gr.addColorStop(0.6,'rgba(0,0,0,0.25)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=gr;x.fillRect(0,0,64,64);return new T.CanvasTexture(c);
+})();
+var aoMat=new T.MeshBasicMaterial({map:aoTex,transparent:true,depthWrite:false,opacity:0.6});
+var aoGeo=new T.PlaneGeometry(1,1);aoGeo.rotateX(-Math.PI/2);
+function ao(g,w,d,y,x,z){var m=new T.Mesh(aoGeo,aoMat);m.scale.set(w,1,d);m.position.set(x||0,y||0.004,z||0);m.renderOrder=1;g.add(m);return m;}
+var doorGlass=new T.MeshLambertMaterial({color:'#e6f6fb',transparent:true,opacity:0.22,depthWrite:false});
 var pLights=[];
 for(var pli=0;pli<4;pli++){var pl0=new T.PointLight(0xffe2b0,0,9,1.2);scene.add(pl0);pLights.push(pl0);}
 function glowPool(x,z,sx,sz,mat){
@@ -894,6 +904,7 @@ function makePerson(o){
   if(o.pack){bx(g,0.22,0.26,0.1,o.pack,0,0.3,-0.13);}
   if(o.tie){bx(g,0.04,0.2,0.02,o.tie,0,0.36,0.09);}
   if(o.cse){bx(armR,0.16,0.12,0.06,o.cse,0,-0.47,0.05);}
+  ao(g,0.42,0.42,0.012);
   personStatic(g,[o.shirt,o.pants,o.hair,o.skin,o.cap||0,o.vest||0,o.robe||0,o.hat?1:0,o.pack||0,o.tie||0,hs,o.skirt||0].join('|'));
   g.userData={legL:legL,legR:legR,armL:armL,armR:armR};
   return g;
@@ -960,7 +971,8 @@ function mShelf(l,n,style){
   bx(g,0.94,1.2,0.04,'#e6dfd0',0,0.03,-0.22);
   for(var s=-0.36;s<0.4;s+=0.18)bx(g,0.012,1.05,0.006,'#d3cbb8',s,0.1,-0.197);
   bx(g,0.05,1.22,0.5,fr,-0.45,0,0);bx(g,0.05,1.22,0.5,fr,0.45,0,0);
-  bx(g,0.94,0.09,0.5,'#6d5a48',0,0,0);
+  bx(g,0.94,0.09,0.5,'#6d5a48',0,0,0);bx(g,0.94,0.07,0.012,st.hdr,0,0.01,0.252);
+  bx(g,0.012,0.22,0.16,'#ffffff',-0.478,0.9,0.12);bx(g,0.014,0.06,0.13,st.hdr,-0.48,1.04,0.12);bx(g,0.012,0.22,0.16,'#ffffff',0.478,0.9,0.12);bx(g,0.014,0.06,0.13,st.hdr,0.48,1.04,0.12);
   var ys=[0.1,0.46,0.82];
   ys.forEach(function(y){
     bx(g,0.86,0.035,0.46,fr,0,y,0);
@@ -995,6 +1007,13 @@ function mFridge(l,n,kind){
   bx(g,0.14,0.07,0.011,'#101418',0.33,1.5,0.286);
   bx(g,0.09,0.035,0.012,'#7ef0c4',0.33,1.515,0.287,emi('#7ef0c4',0.9));
   bx(g,0.8,0.015,0.4,lampMat,0,1.435,0);
+  [-0.215,0.215].forEach(function(dx){
+    bx(g,0.42,1.28,0.01,doorGlass,dx,0.13,0.262);
+    bx(g,0.42,0.025,0.02,'#b9c4c9',dx,0.13,0.262);bx(g,0.42,0.025,0.02,'#b9c4c9',dx,1.385,0.262);
+    bx(g,0.02,1.28,0.02,'#b9c4c9',dx-0.2,0.13,0.262);bx(g,0.02,1.28,0.02,'#b9c4c9',dx+0.2,0.13,0.262);
+    bx(g,0.02,0.32,0.03,'#7d8a90',dx+(dx<0?0.17:-0.17),0.6,0.28);
+  });
+  bx(g,0.2,0.06,0.012,'#ffd84a',-0.3,1.33,0.27);
   var P=mkSlots('fr',grid(6,-0.3375,0.135,ys,[0,0.15],0.03));
   for(var i=0;i<n;i++)fridgeProduct(g,kind,P[i][0],P[i][1],P[i][2],i);
   return g;
@@ -2331,7 +2350,7 @@ function rawModel(it){
   }
   return new T.Group();
 }
-function buildModel(it){var g=rawModel(it);mergeStatic(g);return g;}
+function buildModel(it){var g=rawModel(it);ao(g,1.25,1.15,0.005);mergeStatic(g);return g;}
 var alertGeo=new T.SphereGeometry(0.1,8,8);
 function addItem(type,x,z,l,spent,r,stock){
   var it={id:++uid,type:type,x:x,z:z,r:r||0,l:l||1,spent:spent||0,held:false,q:[],cur:null,timer:0,pop:1,pulse:0};
@@ -2958,7 +2977,10 @@ function panBy(dx,dy){
   camTarget.addScaledVector(fwdV,dy*wpp*1.73);
   camTarget.x=clamp(camTarget.x,-16,W+19);camTarget.z=clamp(camTarget.z,-14,D+22);
 }
-function setZoom(z){zoom=clamp(z,0.28,3.2);camera.zoom=zoom;camera.updateProjectionMatrix();}
+function setZoom(z){zoom=clamp(z,0.28,7);camera.zoom=zoom;camera.updateProjectionMatrix();
+  var h=clamp(26/zoom,6,26),sc=sun.shadow.camera;
+  if(Math.abs(sc.right-h)>0.5){sc.left=-h;sc.right=h;sc.top=h;sc.bottom=-h;sc.updateProjectionMatrix();renderer.shadowMap.needsUpdate=true;}
+}
 
 /* ---------- Interface ---------- */
 var toastT=null;
@@ -3944,6 +3966,7 @@ function stoneLantern(g,x,z){
   bx(g,0.2,0.2,0.2,lanternMat,x,0.45,z);bx(g,0.3,0.07,0.3,'#8a8a84',x,0.65,z);bx(g,0.12,0.07,0.12,'#9a9a94',x,0.72,z);
 }
 function miniTree(g,x,z,col,s){
+  ao(g,1.3*s,1.3*s,0.035,x,z);
   cyl(g,0.07*s,0.09*s,0.5*s,'#7a5a3a',x,0.03,z,6);
   var fi=FOLB.indexOf(col),fm=col==='#f4a6c0'?SAKM:fi>=0?FOL[fi]:M(col);
   var m=new T.Mesh(gcache.ico||(gcache.ico=new T.IcosahedronGeometry(0.55,0)),fm);
@@ -4105,9 +4128,10 @@ function car(g,x,z,c,ry,parked){
     [[0.27,0.2],[0.27,-0.2],[-0.27,0.2],[-0.27,-0.2]].forEach(function(w){var wh=cyl(t,0.085,0.085,0.07,'#1e1e22',w[0],0,w[1],10);wh.rotation.x=Math.PI/2;wh.position.y=0.085;var hb=cyl(t,0.045,0.045,0.075,'#b8bec4',w[0],0,w[1],8);hb.rotation.x=Math.PI/2;hb.position.y=0.085;});
     if(!parked){bx(t,0.03,0.05,0.09,headMat,0.455,0.16,0.15);bx(t,0.03,0.05,0.09,headMat,0.455,0.16,-0.15);bx(t,0.03,0.045,0.08,tailMat,-0.455,0.16,0.15);bx(t,0.03,0.045,0.08,tailMat,-0.455,0.16,-0.15);}
     else{bx(t,0.03,0.05,0.09,'#f4f1e6',0.455,0.16,0.15);bx(t,0.03,0.05,0.09,'#f4f1e6',0.455,0.16,-0.15);}
+    ao(t,1.2,0.7,0.01);
     mergeStatic(t);hit=CARC[key]=t.children.map(function(q){q.geometry.userData.own=false;return [q.geometry,q.material];});
   }
-  hit.forEach(function(e){var q=new T.Mesh(e[0],e[1]);q.castShadow=true;m.add(q);});
+  hit.forEach(function(e){var q=new T.Mesh(e[0],e[1]);q.castShadow=!e[1].transparent;m.add(q);});
   if(!parked){var b=new T.Mesh(beamGeo,beamMat);b.scale.set(0.62*1.6,1,0.4*2.0);b.position.set(0.47+0.62*0.8,0.03,0);b.renderOrder=3;m.add(b);}
   return m;
 }
@@ -4657,6 +4681,7 @@ function buildEnv(){
     }
   }
   inst(new T.CylinderGeometry(0.09,0.12,0.5,6),M('#7a5a3a'),tr);
+  inst(aoGeo.clone(),aoMat,tr.map(function(a){return [a[0],0.02,a[2],a[3]*1.6,1,a[3]*1.6];}));
   var blob=new T.IcosahedronGeometry(0.55,0);for(i=0;i<3;i++)inst(blob,FOL[i],br[i]);
   inst(new T.ConeGeometry(0.6,0.9,8),pineMat,pn);
   mergeStatic(envG);envG.traverse(function(o){if(o.isMesh&&!o.isInstancedMesh)o.castShadow=false;});
