@@ -83,6 +83,10 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 #radioBtn{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 92px);width:44px;height:44px;border-radius:50%;border:1px solid rgba(126,240,196,.3);background:rgba(15,47,46,.92);color:var(--ink);font-size:21px;line-height:1;cursor:pointer;padding:0;z-index:6;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #np{position:absolute;right:64px;top:calc(env(safe-area-inset-top) + 98px);max-width:46vw;background:rgba(15,47,46,.92);border:1px solid rgba(126,240,196,.22);color:var(--ink);font-weight:800;font-size:13px;padding:7px 12px;border-radius:14px;opacity:0;transform:translateX(8px);transition:opacity .35s,transform .35s;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:6}
 #np.show{opacity:1;transform:none}
+#achBtn{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 144px);width:44px;height:44px;border-radius:50%;border:1px solid rgba(126,240,196,.3);background:rgba(15,47,46,.92);font-size:21px;z-index:6;cursor:pointer;padding:0}
+.bdg{display:none;margin-left:3px;min-width:15px;padding:0 4px;border-radius:9px;background:#e94b4b;color:#fff;font-size:10px;line-height:15px;vertical-align:top}
+.pbar{height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:5px;overflow:hidden}.pbar i{display:block;height:100%;background:#7ef0c4;border-radius:3px}
+.medals{font-size:13px;letter-spacing:-1px;white-space:nowrap;align-self:center}
 #radioBtn.hit{border-color:var(--amber);box-shadow:0 0 14px var(--amber)}
 #np.hit{color:var(--amber);border-color:var(--amber)}
 #radio .rt.hit{color:var(--amber)}
@@ -119,6 +123,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
   <div class="chip" id="evt"></div>
   <div id="toast" role="status"></div>
   <button id="radioBtn" aria-label="Radio">📻</button>
+  <button id="achBtn" aria-label="Succès">🏆</button>
   <div id="np"></div>
   <div id="radio"></div>
   <div id="dock">
@@ -131,7 +136,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
       <button class="tab" data-tab="ups">Évoluer</button>
       <button class="tab" data-tab="staff">Équipe</button>
       <button class="tab" data-tab="gacha">Gacha</button>
-      <button class="tab" data-tab="city">Ville</button>
+      <button class="tab" data-tab="city">Ville<span id="jobBdg" class="bdg"></span></button>
       <button class="tab" data-tab="deliv">Livreur</button>
       <button class="tab" data-tab="shop">Magasin</button>
     </nav>
@@ -609,7 +614,7 @@ var DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 var FRONT=[[0,1],[1,0],[0,-1],[-1,0]];
 
 /* ---------- État ---------- */
-var S={dn:5,money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},ci:{roads:0,lamps:0,bike:0,bus:0,taxi:0,police:0,metro:0},nb:{hall:0,temple:0,park:0,school:0,station:0,ramen:0,houses:0,arcade:0,office:0,onsen:0,clinic:0,stadium:0,mall:0}};
+var S={nbc:{},jobs:[],ach:{},st:{sold:0,bills:0,jobs:0,rain:0,night:0,hit:0,nbc:0,riders:0,best:0,de:0,day:5},dn:5,money:200,served:0,earned:0,tier:0,clock:8*60,ups:{},staff:{cashier:0,stocker:0},items:[],avgRate:0,evt:null,reserve:{snack:20},pending:[],gacha:{n:0,got:{}},wx:{cur:'clear',next:'rain',left:150},dl:{on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},ci:{roads:0,lamps:0,bike:0,bus:0,taxi:0,police:0,metro:0},nb:{hall:0,temple:0,park:0,school:0,station:0,ramen:0,houses:0,arcade:0,office:0,onsen:0,clinic:0,stadium:0,mall:0}};
 var W=TIERS[0].w, D=TIERS[0].d;
 var stkMult=1, uid=0, occ=[], customers=[], staffActors=[], itemRoots=[];
 var placing=null, selected=null, tabOpen=null;
@@ -650,6 +655,7 @@ function spendMult(){
   var tb=0;ofType('table').slice(0,6).forEach(function(t){tb+=CAT.table.spend*decorF(t.l);});ofType('sofa').slice(0,4).forEach(function(t){tb+=CAT.sofa.spend*decorF(t.l);});
   m+=tb;
   if(S.evt)m+=S.evt.s;
+  m+=achTotal()*0.01;
   if(Snd.hit())m*=2;
   return m;
 }
@@ -2617,7 +2623,7 @@ function nextGoal(c){
 function takeItem(c,it){
   if(S.items.indexOf(it)>=0&&!it.held&&it.stock>0){
     var price=itemPrice(it)*(c.sm||1);
-    it.stock--;it.pulse=1;it.useT=simTime;Snd.machine(CAT[it.type].kind==='direct'?it.type:'pick');
+    it.stock--;it.pulse=1;it.useT=simTime;statSale(c);Snd.machine(CAT[it.type].kind==='direct'?it.type:'pick');
     syncVis(it);updateAlert(it);
     if(it.stock===0&&simTime-emptyToast>6){emptyToast=simTime;Snd.play('warn');toast(CAT[it.type].n+' : rupture de stock !');}
     if(CAT[it.type].kind==='direct'){
@@ -2665,12 +2671,12 @@ function leaveShop(c){
 function countServed(c){
   if(c.counted)return;
   c.counted=true;
-  var before=rank();S.served++;
+  var before=rank();S.served++;statServed(c);
   var after=rank();
   if(after>before)onRankUp(after);
 }
 function gain(a,pos){
-  a=Math.round(a);Snd.play('coin');S.money+=a;S.earned+=a;secEarn+=a;
+  a=Math.round(a);Snd.play('coin');S.money+=a;S.earned+=a;secEarn+=a;statEarn(a);
   floatAt(new T.Vector3(pos.x,pos.y+1.1,pos.z),'+¥'+fmt(a),'');
 }
 function onRankUp(r){
@@ -2947,6 +2953,8 @@ function renderSheet(){
     h+=renderCity();
   }else if(tabOpen==='deliv'){
     h+=renderDeliv();
+  }else if(tabOpen==='ach'){
+    h+=renderAch();
   }else if(tabOpen==='shop'){
     var nt=TIERS[S.tier+1];
     h+='<div class="h3">Agrandissement</div>';
@@ -3136,6 +3144,7 @@ document.addEventListener('click',function(e){
   var el=e.target;
   while(el&&el!==document){
     if(el.getAttribute&&el.getAttribute('data-act')){handleAct(el);return;}
+    if(el.id==='achBtn'){if(placing)return;tabOpen=tabOpen==='ach'?null:'ach';selected=null;renderSel();renderSheet();return;}
     if(el.classList&&el.classList.contains('tab')){
       var t=el.getAttribute('data-tab');
       if(placing)return;
@@ -3189,7 +3198,7 @@ function tapBill(px,py){
   var xp=billXp(),before=rank(),pos=bill.g.position.clone();
   var bc=bill.c;if(customers.indexOf(bc)>=0){var cp=bc.g.position;floatAt(new T.Vector3(cp.x,cp.y+1.5,cp.z),'Merci !','');}
   scene.remove(bill.g);bill=null;billT=rnd(120,180);
-  S.served+=xp;
+  S.served+=xp;S.st.bills++;
   Snd.play('coin');Snd.play('up');
   floatAt(new T.Vector3(pos.x,pos.y+1.1,pos.z),'+'+fmt(xp)+' XP','rk');
   toast('Vous avez rendu le billet au client. Merci ! +'+fmt(xp)+' XP');
@@ -3251,7 +3260,7 @@ canvas.addEventListener('wheel',function(e){e.preventDefault();setZoom(zoom*(e.d
 function buildSave(){
   var res={};Object.keys(S.reserve).forEach(function(k){res[k]=S.reserve[k];});
   S.pending.forEach(function(p){res[p.type]=(res[p.type]||0)+p.qty;});
-  return {v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,dn:S.dn,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,dl:S.dl,nb:S.nb,ci:S.ci,t:Date.now(),
+  return {v:1,money:S.money,served:S.served,earned:S.earned,tier:S.tier,clock:S.clock,dn:S.dn,ups:S.ups,staff:S.staff,avgRate:S.avgRate,reserve:res,g:S.gacha,dl:S.dl,nb:S.nb,ci:S.ci,nbc:S.nbc,jobs:S.jobs,st:S.st,ach:S.ach,t:Date.now(),
     items:S.items.map(function(i){return {t:i.type,x:i.x,z:i.z,l:i.l,s:i.spent,r:i.r,k:i.stock};})};
 }
 var remote={ref:null,state:'none',dirty:false,busy:false,last:0};
@@ -3276,8 +3285,12 @@ function applySave(d){
   S.money=d.money;S.served=d.served;S.earned=d.earned;S.tier=Math.min(d.tier,TIERS.length-1);S.clock=d.clock;S.dn=(typeof d.dn==='number')?d.dn:5;S.ups=d.ups||{};S.staff=d.staff||{cashier:0,stocker:0};S.avgRate=d.avgRate||0;
   S.dl=Object.assign({on:0,bag:0,motor:0,app:0,fleet:1,done:0,gain:0},d.dl||{});S.ci=Object.assign({roads:0,lamps:0,bike:0,bus:0,taxi:0,police:0,metro:0},d.ci||{});S.nb=Object.assign({hall:0,temple:0,park:0,school:0,station:0,ramen:0,houses:0,arcade:0,office:0,onsen:0,clinic:0,stadium:0,mall:0},d.nb||{});dlPend=0;
   S.reserve=d.reserve||{};S.pending=[];S.gacha=d.g&&d.g.got?d.g:{n:0,got:{}};stkMult=1+upSum('stk');
+  S.nbc=d.nbc||{};S.st=Object.assign({sold:0,bills:0,jobs:0,rain:0,night:0,hit:0,nbc:0,riders:0,best:0,de:0,day:Math.floor(S.dn)},d.st||{});
+  var achNew=!d.ach;S.ach=d.ach||{};
+  S.jobs=(d.jobs||[]).filter(function(j){if(j.st==='run'){S.money+=j.r;S.earned+=j.r;S.served+=j.xp;S.st.jobs++;return false;}return Date.now()<j.end;});
   W=TIERS[S.tier].w;D=TIERS[S.tier].d;
   buildShell();
+  setTimeout(function(){syncJobs();var n=achCheck(true);if(achNew&&n)toast('🏆 '+n+' succès déjà débloqués ! Touchez le trophée pour les voir.');},300);
   (d.items||[]).forEach(function(i){if(CAT[i.t]&&i.x<W&&i.z<D)addItem(i.t,i.x,i.z,i.l,i.s,i.r||0,i.k);});
   rebuildOcc();
   var away=Math.min((Date.now()-d.t)/1000,6*3600);
@@ -3763,6 +3776,7 @@ var GRND={};
 function groundMat(c){return GRND[c]||(GRND[c]=new T.MeshLambertMaterial({color:c}));}
 function ground(g,w,d,c){var m=bx(g,w,0.03,d,groundMat(c),0,0,0);m.receiveShadow=true;return m;}
 function sale(g){
+  if(noSale)return;
   bx(g,0.08,0.8,0.08,'#6b4a2b',-0.5,0,0);bx(g,0.08,0.8,0.08,'#6b4a2b',0.5,0,0);
   bx(g,1.4,0.5,0.06,textMat('TERRAIN À VENDRE','#f4ecd2','#7a4b1f',320,128,26),0,0.45,0);
 }
@@ -4003,7 +4017,8 @@ function rebuildNb(){
   nbTicks=[];
   NBK.forEach(function(k){
     var p=plotOf(k),g=new T.Group();g.position.set(p.x,0,p.z);nbG.add(g);
-    NBB[k](g,S.nb[k]);
+    if(S.nbc[k]){noSale=true;NBB[k](g,S.nb[k]);noSale=false;bSite(g,k);}
+    else NBB[k](g,S.nb[k]);
   });
   buildTrain();buildAmb();
 }
@@ -4092,7 +4107,7 @@ function nbSpawn(dt){
   });
 }
 function worldUpdate(dt){
-  wxUpdate(dt);billUpdate(dt);envUpdate(dt);trfUpdate(dt);ambUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
+  wxUpdate(dt);billUpdate(dt);featUpdate(dt);envUpdate(dt);trfUpdate(dt);ambUpdate(dt);dlUpdate(dt);nbSpawn(dt);trainUpdate(dt);
   for(var i=0;i<nbTicks.length;i++)nbTicks[i](simTime,dt);
 }
 /* ---------- Interface : onglet Ville ---------- */
@@ -4103,16 +4118,17 @@ function nbLvlRow(k){
     L===0?'Terrain à acheter. Amène des '+d.who.toLowerCase()+' qui achètent '+d.buy+'.':
     'Niveau '+L+'/3 · '+d.lv[L-1]+'. '+d.who+' : '+d.buy+'.';
   var btn;
-  if(rank()<d.rank)btn='<div class="btn off lk">★ '+d.rank+'</div>';
+  if(S.nbc[k]){btn='<div class="btn off lk" data-cend="'+S.nbc[k].end+'">🏗️ '+mmss(siteLeft(k))+'</div>';line='Chantier en cours vers le niveau '+S.nbc[k].to+' : '+d.lv[S.nbc[k].to-1]+'.';}
+  else if(rank()<d.rank)btn='<div class="btn off lk">★ '+d.rank+'</div>';
   else if(L>=3)btn='<div class="btn off lk">Maximum</div>';
   else if(L===0&&cityLv()<(d.cl||0))btn='<div class="btn off lk">🏛️ Ville '+d.cl+'</div>';
   else btn='<button class="btn" data-act="nbup" data-k="'+k+'" data-cost="'+next+'">'+yen(next)+'</button>';
-  if(L<3&&L>0)line+=' Prochain : '+d.lv[L]+'.';
+  if(L<3&&L>0&&!S.nbc[k])line+=' Prochain : '+d.lv[L]+'.';
   h+='<div class="row"><div class="meta"><b>'+d.e+' '+d.n+(L?' · niv. '+L:'')+'</b><span>'+line+'</span></div>'+btn+'</div>';
   return h;
 }
 function renderCity(){
-  var h='',w=S.wx,nx=WXN[w.next];
+  var h=renderJobs(),w=S.wx,nx=WXN[w.next];
   var si=seasonIdx(),dj=Math.floor(S.dn%10)+1;
   h+='<div class="h3">Météo</div>';
   h+='<div class="row"><div class="meta"><b>'+SEAS[si].e+' '+SEAS[si].n+' · jour '+dj+'/10</b><span>Il fait '+curTemp()+'°C dehors. Chaque saison dure 10 jours de jeu ; la neige ne tombe qu\'au froid, la canicule seulement l\'été.</span></div></div>';
@@ -4164,6 +4180,7 @@ function cityAct(a,b){
     if(ok){Snd.play('up');renderSheet();save();}
     return true;
   }
+  if(a==='jobgo'){startJob(k);return true;}
   if(a==='ciup'){
     var cc=CIT.filter(function(x){return x.k===k;})[0];if(!cc)return true;
     var cl=S.ci[k]||0;if(rank()<cc.rank||cl>=5||cl>=hallCap())return true;
@@ -4177,8 +4194,9 @@ function cityAct(a,b){
     var d=NBD[k];if(!d||S.nb[k]>=3||rank()<d.rank)return true;
     if(S.nb[k]===0&&cityLv()<(d.cl||0)){toast('Il faut un niveau de ville '+d.cl+'.');return true;}
     var c2=d.costs[S.nb[k]];if(S.money<c2){toast('Pas assez de yens.');return true;}
-    S.money-=c2;S.nb[k]++;rebuildNb();Snd.play('fanfare');
-    toast(d.e+' '+d.n+' : niveau '+S.nb[k]+' !');renderSheet();save();return true;
+    if(S.nbc[k]){toast('Chantier déjà en cours.');return true;}
+    S.money-=c2;S.nbc[k]={to:S.nb[k]+1,end:Date.now()+SITE_DUR[S.nb[k]]*1000};rebuildNb();Snd.play('place');
+    toast('🏗️ '+d.e+' '+d.n+' : chantier commencé ('+mmss(SITE_DUR[S.nb[k]])+').');renderSheet();save();return true;
   }
   return false;
 }
@@ -4535,6 +4553,277 @@ function renderMairie(){
     h+='<div class="row"><div class="meta"><b>'+c.e+' '+c.n+' · niv. '+l+'/5</b><span>'+c.d(l)+(l<5?' → '+c.d(l+1):'')+'</span></div>'+btn+'</div>';
   });
   return h;
+}
+/* ======================================================================
+   CHANTIERS EN DIRECT
+   ====================================================================== */
+var SITE_DUR=[60,120,180],noSale=false;
+function siteLeft(k){var c=S.nbc[k];return c?Math.max(0,(c.end-Date.now())/1000):0;}
+function mmss(s){s=Math.ceil(s);var m=Math.floor(s/60),r=s%60;return m+':'+(r<10?'0':'')+r;}
+function worker(g,x,z){
+  var w=makePerson({shirt:'#f08a24',pants:'#3a4a6a',hair:pick(HAIRS),skin:pick(SKINS),cap:'#f2c94c'});
+  w.position.set(x,0.04,z);g.add(w);return w;
+}
+function bSite(g,k){
+  var p=plotOf(k),c=S.nbc[k],hw=p.w/2-0.4,hd=p.d/2-0.4,L0=S.nb[k];
+  var dur=SITE_DUR[c.to-1]*1000;
+  function prog(){return clamp(1-(c.end-Date.now())/dur,0,1);}
+  if(L0===0){bx(g,p.w-1.2,0.035,p.d-1.2,'#b08d5f',0,0,0);}
+  /* clôture */
+  for(var x=-hw;x<=hw;x+=0.9){bx(g,0.8,0.5,0.04,(Math.round(x/0.9)%2)?'#f4f4f4':'#f08a24',x,0.03,-hd);bx(g,0.8,0.5,0.04,(Math.round(x/0.9)%2)?'#f4f4f4':'#f08a24',x,0.03,hd);}
+  for(var z=-hd;z<=hd;z+=0.9){bx(g,0.04,0.5,0.8,(Math.round(z/0.9)%2)?'#f4f4f4':'#f08a24',-hw,0.03,z);bx(g,0.04,0.5,0.8,(Math.round(z/0.9)%2)?'#f4f4f4':'#f08a24',hw,0.03,z);}
+  /* panneau et barre de progression */
+  bx(g,1.5,0.45,0.05,textMat('CHANTIER','#f2c94c','#2b2b2b',320,96,40),-hw+1.1,0.75,hd+0.05);
+  bx(g,0.06,0.75,0.06,'#555',-hw+0.45,0.03,hd+0.05);bx(g,0.06,0.75,0.06,'#555',-hw+1.75,0.03,hd+0.05);
+  bx(g,1.4,0.12,0.04,'#3a3a3a',-hw+1.1,1.03,hd+0.06);
+  var bar=bx(g,1.36,0.08,0.05,'#7ef0c4',-hw+1.1,1.05,hd+0.07);
+  /* ossature qui monte (nouveau bâtiment) ou échafaudage (agrandissement) */
+  var cols=[],slab=[],fw=Math.min(4.2,p.w*0.5),fd=Math.min(2.6,p.d*0.4),H=L0===0?2.4:3.2;
+  if(L0===0){
+    for(var i=0;i<3;i++)for(var j=0;j<2;j++)cols.push(bx(g,0.18,1,0.18,'#9aa0a6',-fw/2+i*fw/2,0.03,-fd/2+j*fd));
+    slab.push(bx(g,fw+0.3,0.1,fd+0.3,'#b5b9bd',0,0.03,0));slab.push(bx(g,fw+0.3,0.1,fd+0.3,'#b5b9bd',0,1.2,0));
+  }else{
+    [-1,1].forEach(function(sx){[-1,1].forEach(function(sz){bx(g,0.06,H,0.06,'#c9a227',sx*fw/2,0.03,sz*fd/2);});});
+    for(var y=0.8;y<H;y+=0.8){bx(g,fw,0.05,0.05,'#c9a227',0,y,fd/2);bx(g,fw,0.05,0.05,'#c9a227',0,y,-fd/2);bx(g,0.05,0.05,fd,'#c9a227',fw/2,y,0);bx(g,0.05,0.05,fd,'#c9a227',-fw/2,y,0);
+      bx(g,fw,0.04,0.35,'#8a6a43',0,y+0.03,fd/2+0.18);}
+    var net=bx(g,fw*0.98,H*0.95,0.02,'#5aa7e0',0,0.05,fd/2+0.36);net.material=new T.MeshLambertMaterial({color:'#5aa7e0',transparent:true,opacity:0.35});
+  }
+  /* grue */
+  var cx=hw-0.9,cz=-hd+0.9,TH=5.5;
+  bx(g,0.9,0.25,0.9,'#888',cx,0.03,cz);
+  for(var t=0;t<TH;t+=0.55){bx(g,0.32,0.5,0.32,'#f2c94c',cx,0.25+t,cz);}
+  bx(g,0.5,0.4,0.5,'#e9e9e9',cx,TH+0.25,cz);
+  var jib=new T.Group();jib.position.set(cx,TH+0.65,cz);g.add(jib);
+  bx(jib,5.0,0.22,0.22,'#f2c94c',-1.8,0,0);bx(jib,0.7,0.45,0.4,'#666',1.0,-0.2,0);
+  var trol=new T.Group();jib.add(trol);
+  var cab=bx(trol,0.02,1,0.02,'#333',0,0,0),hook=bx(trol,0.5,0.25,0.35,'#8a6a43',0,0,0);
+  /* ouvriers */
+  var w1=worker(g,-fw/2-0.6,fd/2+0.9),w2=worker(g,fw/2+0.5,-fd/2-0.5),w3=worker(g,0,fd/2+1.4);
+  w2.rotation.y=Math.PI;
+  nbTicks.push(function(t){
+    var pr=prog();
+    bar.scale.x=Math.max(0.02,pr);bar.position.x=-hw+1.1-0.68*(1-pr);
+    if(L0===0){cols.forEach(function(m){m.scale.y=Math.max(0.05,pr*H);});slab[1].position.y=0.03+Math.max(0.05,pr*H);slab[1].visible=pr>0.15;}
+    jib.rotation.y=Math.sin(t*0.25)*1.2;
+    var tp=-1.2-1.8*(0.5+0.5*Math.sin(t*0.4)),hy=-(1.2+2.4*(0.5+0.5*Math.sin(t*0.6)));
+    trol.position.x=tp;cab.scale.y=-hy;cab.position.y=hy;hook.position.y=hy-0.25;
+    var ph=t*1.2,wx=Math.sin(ph)*fw*0.45,dx=Math.cos(ph);
+    w1.position.x=wx;w1.rotation.y=dx>0?Math.PI/2:-Math.PI/2;var sw=Math.sin(t*8)*0.6;
+    w1.userData.legL.rotation.x=sw;w1.userData.legR.rotation.x=-sw;
+    w2.userData.armR.rotation.x=-1.6+Math.abs(Math.sin(t*6))*1.1;
+    w3.userData.armL.rotation.x=-1.0;w3.userData.armR.rotation.x=-1.0;w3.position.z=fd/2+1.4+Math.sin(t*0.7)*0.4;
+  });
+}
+function siteTick(){
+  var done=false;
+  Object.keys(S.nbc).forEach(function(k){
+    if(Date.now()>=S.nbc[k].end){
+      S.nb[k]=S.nbc[k].to;delete S.nbc[k];done=true;
+      toast('🏗️ Chantier terminé : '+NBD[k].e+' '+NBD[k].n+' niveau '+S.nb[k]+' !');Snd.play('fanfare');
+    }
+  });
+  if(done){rebuildNb();if(tabOpen==='city')renderSheet();save();}
+  var els=document.querySelectorAll('[data-cend]');
+  for(var i=0;i<els.length;i++)els[i].textContent='🏗️ '+mmss(Math.max(0,(+els[i].getAttribute('data-cend')-Date.now())/1000));
+}
+
+/* ======================================================================
+   PETITS BOULOTS
+   ====================================================================== */
+var PN={snack:'paquets de snacks',bread:'pains',noodle:'bols de nouilles',stationery:'cahiers',magazine:'magazines',umbrella:'parapluies',cosmetic:'cosmétiques',medicine:'boîtes de médicaments',flowers:'bouquets',sake:'bouteilles de saké',souvenir:'souvenirs',hydro:'laitues',onigiri:'onigiris',drink:'boissons',sandwich:'sandwichs',icecream:'glaces',bento:'bentos',dessert:'desserts',sushi:'plateaux de sushis',hot:'plats chauds',coffee:'cafés',fries:'cornets de frites',nikuman:'nikuman',smoothie:'jus frais',oven:'pains chauds',rice:'sacs de riz',tea:'boîtes de thé',pet:'sacs de croquettes',toys:'jouets',electro:'chargeurs',wine:'bouteilles de vin',milk:'bouteilles de lait',salad:'salades',oden:'portions d\'oden',yakitori:'brochettes'};
+var JB={
+  hall:{w:'pour une réunion du conseil municipal',t:['coffee','sandwich','bento','tea','onigiri']},
+  ramen:{w:'en dépannage pour le comptoir',t:['noodle','sake','rice','tea','oden']},
+  houses:{w:'pour une famille du quartier',t:['milk','bread','rice','medicine','pet','snack']},
+  temple:{w:'pour une cérémonie au temple',t:['tea','flowers','rice','sake','onigiri']},
+  park:{w:'pour un pique-nique au parc',t:['icecream','drink','smoothie','snack','onigiri']},
+  school:{w:'pour la sortie scolaire',t:['onigiri','milk','bento','stationery','drink']},
+  arcade:{w:'pour un tournoi de jeux vidéo',t:['drink','snack','fries','toys']},
+  station:{w:'pour le kiosque de la gare',t:['magazine','sandwich','coffee','drink','onigiri']},
+  office:{w:'pour la réunion de l\'équipe',t:['coffee','bento','sandwich','onigiri','electro']},
+  onsen:{w:'pour les baigneurs',t:['milk','sake','icecream','drink']},
+  clinic:{w:'pour le personnel soignant',t:['salad','tea','milk','medicine','sandwich']},
+  stadium:{w:'pour la buvette du match',t:['drink','yakitori','snack','sake','nikuman']},
+  mall:{w:'pour une promotion en boutique',t:['flowers','toys','cosmetic','souvenir','dessert']}
+};
+var jobT=rnd(40,80),jobG=new T.Group(),couriers=[];scene.add(jobG);
+function prodTypes(){return ownedStockTypes().filter(function(t){return CAT[t].kind==='prod';});}
+function stockAll(t){var n=reserveOf(t);S.items.forEach(function(i){if(i.type===t&&!i.held)n+=i.stock;});return n;}
+function newJob(){
+  var places=NBK.filter(function(k){return S.nb[k]>0&&!S.jobs.some(function(j){return j.k===k;});});
+  var pt=prodTypes();if(!places.length||!pt.length)return false;
+  var k=pick(places),cand=JB[k].t.filter(function(t){return pt.indexOf(t)>=0;});
+  if(!cand.length)cand=pt;
+  var t=pick(cand),q=Math.min(30,4+Math.floor(Math.random()*5)+Math.floor(rank()*0.8));
+  var unit=CAT[t].price*spendMult();
+  S.jobs.push({id:Date.now()+'-'+Math.floor(Math.random()*1e4),k:k,t:t,q:q,r:Math.round(Math.max(unit*q*3,S.avgRate*120)),xp:Math.max(1,Math.round(billXp()*0.6)),end:Date.now()+240000,st:'open'});
+  Snd.play('beep');toast(NBD[k].e+' '+NBD[k].n+' demande '+q+' '+PN[t]+'. Voir l\'onglet Ville.');
+  syncJobs();return true;
+}
+function jobSprite(){
+  var cv=document.createElement('canvas');cv.width=cv.height=128;var x=cv.getContext('2d');
+  x.fillStyle='#ffd84a';x.beginPath();x.arc(64,56,48,0,6.3);x.fill();x.beginPath();x.moveTo(44,96);x.lineTo(84,96);x.lineTo(64,124);x.fill();
+  x.font='56px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('📦',64,58);
+  var tx=new T.CanvasTexture(cv);return new T.SpriteMaterial({map:tx,depthTest:false});
+}
+var jobSM=null;
+function syncJobs(){
+  while(jobG.children.length)jobG.remove(jobG.children[0]);
+  if(!jobSM)jobSM=jobSprite();
+  S.jobs.forEach(function(j){if(j.st!=='open')return;var p=plotOf(j.k),s=new T.Sprite(jobSM);s.scale.set(1.3,1.3,1);s.position.set(p.x,4.2,p.z);s.renderOrder=10;s.userData.ph=Math.random()*6;jobG.add(s);});
+  var b=document.getElementById('jobBdg'),n=S.jobs.filter(function(j){return j.st==='open';}).length;
+  if(b){b.textContent=n;b.style.display=n?'inline-block':'none';}
+}
+function takeStock(t,q){
+  var r=Math.min(q,reserveOf(t));S.reserve[t]=reserveOf(t)-r;q-=r;
+  S.items.forEach(function(i){if(q>0&&i.type===t&&!i.held&&i.stock>0){var d=Math.min(q,i.stock);i.stock-=d;q-=d;syncVis(i);updateAlert(i);}});
+}
+function jobPath(k){
+  var p=plotOf(k),out=[{x:DOORX+0.5,z:D-0.5},{x:DOORX+0.5,z:D+1.0}];
+  if(p.z>D+6){var cw=DOORX+2.4;out.push({x:cw,z:D+1.7},{x:cw,z:D+7.0},{x:p.x,z:p.z-p.d/2-0.3});}
+  else if(p.z<0){out.push({x:-0.55,z:D+1.0},{x:-0.55,z:-3.2},{x:p.x,z:-3.2},{x:p.x,z:p.z+p.d/2+0.3});}
+  else{out.push({x:p.x,z:D+1.0},{x:p.x,z:Math.min(p.z+p.d/2-0.5,D+0.3)});}
+  return out;
+}
+function startJob(id){
+  var j=S.jobs.filter(function(x){return x.id===id;})[0];if(!j||j.st!=='open')return;
+  var have=stockAll(j.t);if(have<j.q){toast('Pas assez de '+PN[j.t]+' ('+have+'/'+j.q+'). Commandez du stock.');Snd.play('warn');return;}
+  takeStock(j.t,j.q);j.st='run';
+  var g=makePerson({shirt:'#2f9e6a',pants:'#2b2f3a',hair:pick(HAIRS),skin:pick(SKINS),cap:'#2f9e6a'});
+  bx(g,0.42,0.3,0.32,'#c9a26a',0,0.42,0.28);g.userData.armL.rotation.x=-1.2;g.userData.armR.rotation.x=-1.2;
+  var path=jobPath(j.k);g.position.set(path[0].x,FLOOR_Y,path[0].z-0.6);scene.add(g);
+  couriers.push({g:g,j:j,path:path,i:0,back:false,w:0,ph:0});
+  Snd.play('order');toast('Un employé part livrer '+j.q+' '+PN[j.t]+'.');
+  syncJobs();renderSheet();save();
+}
+function courierUpdate(dt){
+  for(var n=couriers.length-1;n>=0;n--){
+    var c=couriers[n],g=c.g;
+    if(c.w>0){c.w-=dt;if(c.w<=0){c.back=true;c.path.reverse();c.i=0;}continue;}
+    var wp=c.path[c.i],dx=wp.x-g.position.x,dz=wp.z-g.position.z,d=Math.sqrt(dx*dx+dz*dz);
+    if(d<0.08){
+      c.i++;
+      if(c.i>=c.path.length){
+        if(!c.back){finishJob(c);c.w=1.5;g.children[g.children.length-1].visible=false;g.userData.armL.rotation.x=0;g.userData.armR.rotation.x=0;}
+        else{scene.remove(g);couriers.splice(n,1);}
+      }
+      continue;
+    }
+    var st=Math.min(d,1.7*dt);g.position.x+=dx/d*st;g.position.z+=dz/d*st;g.rotation.y=Math.atan2(dx,dz);
+    g.position.y=g.position.z<D+0.1&&g.position.x>0&&g.position.x<W&&g.position.z>0?FLOOR_Y:0.06;
+    c.ph+=dt*10;var sw=Math.sin(c.ph)*0.6;g.userData.legL.rotation.x=sw;g.userData.legR.rotation.x=-sw;
+    if(c.back){g.userData.armL.rotation.x=-sw*0.8;g.userData.armR.rotation.x=sw*0.8;}
+  }
+}
+function finishJob(c){
+  var j=c.j,before=rank();
+  S.jobs=S.jobs.filter(function(x){return x!==j;});
+  gain(j.r,c.g.position);S.served+=j.xp;S.st.jobs++;
+  floatAt(new T.Vector3(c.g.position.x,c.g.position.y+1.6,c.g.position.z),'+'+fmt(j.xp)+' XP','rk');
+  toast('✅ Livraison faite à '+NBD[j.k].n+' : +'+yen(j.r)+' et +'+fmt(j.xp)+' XP');
+  var after=rank();if(after>before)onRankUp(after);
+  if(tabOpen==='city')renderSheet();save();
+}
+function jobsUpdate(dt){
+  courierUpdate(dt);
+  for(var i=0;i<jobG.children.length;i++){var s=jobG.children[i];s.position.y=4.2+Math.sin(simTime*2.5+s.userData.ph)*0.25;}
+  jobT-=dt;
+  if(jobT<=0){jobT=rnd(100,160);if(S.jobs.filter(function(j){return j.st==='open';}).length<3)newJob();}
+}
+function jobsTick(){
+  var n0=S.jobs.length;
+  S.jobs=S.jobs.filter(function(j){return j.st!=='open'||Date.now()<j.end;});
+  if(S.jobs.length!==n0){syncJobs();if(tabOpen==='city')renderSheet();}
+  var els=document.querySelectorAll('[data-jend]');
+  for(var i=0;i<els.length;i++)els[i].textContent='⏱ '+mmss(Math.max(0,(+els[i].getAttribute('data-jend')-Date.now())/1000));
+}
+function renderJobs(){
+  var h='<div class="h3">Petits boulots</div>';
+  var js=S.jobs;
+  if(!js.length){h+='<div class="note">'+(NBK.some(function(k){return S.nb[k]>0;})?'Aucune demande pour l\'instant. Les lieux du quartier envoient des demandes de temps en temps (📦 au-dessus du bâtiment).':'Construisez des lieux dans le quartier : ils vous demanderont des livraisons.')+'</div>';return h;}
+  js.forEach(function(j){
+    var d=NBD[j.k],have=stockAll(j.t),btn;
+    if(j.st==='run')btn='<div class="btn off lk">🚶 En route</div>';
+    else if(have<j.q)btn='<div class="btn off lk">Stock '+have+'/'+j.q+'</div>';
+    else btn='<button class="btn" data-act="jobgo" data-k="'+j.id+'">Livrer</button>';
+    h+='<div class="row"><div class="meta"><b>'+d.e+' '+d.n+' · '+j.q+' '+PN[j.t]+'</b><span>'+JB[j.k].w.charAt(0).toUpperCase()+JB[j.k].w.slice(1)+'. Récompense '+yen(j.r)+' et '+fmt(j.xp)+' XP'+(j.st==='open'?' · <i data-jend="'+j.end+'">⏱ '+mmss((j.end-Date.now())/1000)+'</i>':'')+'</span></div>'+btn+'</div>';
+  });
+  return h;
+}
+
+/* ======================================================================
+   SUCCÈS ET TROPHÉES
+   ====================================================================== */
+var ACH=[
+  {id:'serve',e:'🧑‍🤝‍🧑',n:'Clients servis',f:'Servir {n} clients',v:function(){return S.served;},th:[100,1000,10000,50000,200000]},
+  {id:'earn',e:'💴',n:'Fortune',f:'Gagner {n} ¥ au total',v:function(){return S.earned;},th:[5e4,1e6,5e7,1e9,5e10]},
+  {id:'rank',e:'⭐',n:'Ascension',f:'Atteindre le rang ★{n}',v:function(){return rank();},th:[3,6,9,12,15],raw:1},
+  {id:'sold',e:'🛒',n:'Articles vendus',f:'Vendre {n} articles',v:function(){return S.st.sold;},th:[500,5000,50000,250000,1000000]},
+  {id:'bills',e:'💵',n:'Bon samaritain',f:'Rendre {n} billets échappés',v:function(){return S.st.bills;},th:[1,5,15,40,100]},
+  {id:'dl',e:'🛵',n:'Livreur express',f:'Faire {n} livraisons à scooter',v:function(){return S.dl.done;},th:[10,100,500,2000,10000]},
+  {id:'jobs',e:'📦',n:'Homme à tout faire',f:'Réussir {n} petits boulots',v:function(){return S.st.jobs;},th:[1,5,20,50,150]},
+  {id:'build',e:'🏗️',n:'Bâtisseur',f:'Construire {n} niveaux de bâtiments du quartier',v:function(){var n=0;NBK.forEach(function(k){n+=S.nb[k];});return n;},th:[1,6,15,26,39]},
+  {id:'city',e:'🏛️',n:'Urbaniste',f:'Atteindre le niveau de ville {n}',v:function(){return cityLv();},th:[1,7,15,25,35],raw:1},
+  {id:'gacha',e:'🎰',n:'Collectionneur',f:'Ouvrir {n} capsules du gachapon',v:function(){return S.gacha.n;},th:[1,5,15,30,50]},
+  {id:'items',e:'🧱',n:'Aménagement',f:'Avoir {n} meubles et machines dans le magasin',v:function(){return S.items.length;},th:[5,12,20,30,45]},
+  {id:'staff',e:'👔',n:'Patron',f:'Avoir {n} employés',v:function(){return S.staff.cashier+S.staff.stocker;},th:[1,3,5,7,9]},
+  {id:'days',e:'📅',n:'Fidèle au poste',f:'Rester ouvert {n} jours',v:function(){return Math.floor(S.dn-5);},th:[2,10,40,100,200]},
+  {id:'rain',e:'☔',n:'Sous la pluie',f:'Vendre {n} articles sous la pluie ou la neige',v:function(){return S.st.rain;},th:[50,500,5000,25000,100000]},
+  {id:'night',e:'🌙',n:'Oiseau de nuit',f:'Vendre {n} articles entre 22 h et 5 h',v:function(){return S.st.night;},th:[50,500,5000,25000,100000]},
+  {id:'hit',e:'🎵',n:'Tube du moment',f:'Vendre {n} articles pendant une chanson succès',v:function(){return S.st.hit;},th:[25,250,2500,15000,60000]},
+  {id:'nbc',e:'🏘️',n:'Ami du quartier',f:'Servir {n} clients venus du quartier',v:function(){return S.st.nbc;},th:[25,250,2500,15000,60000]},
+  {id:'best',e:'📈',n:'Journée record',f:'Gagner {n} ¥ en une seule journée',v:function(){return Math.max(S.st.best,S.st.de);},th:[1e4,2e5,5e6,1e8,2e9]},
+  {id:'tier',e:'📐',n:'Agrandissements',f:'Agrandir le magasin {n} fois',v:function(){return S.tier;},th:[1,2,3,5,7],raw:1},
+  {id:'riders',e:'🚌',n:'Transports en commun',f:'Servir {n} clients venus en bus, taxi, vélo ou métro',v:function(){return S.st.riders;},th:[10,100,1000,5000,20000]}
+];
+var MED=['🥉','🥈','🥇','💎','👑'],MEDN=['Bronze','Argent','Or','Platine','Diamant'];
+function achTotal(){var n=0;ACH.forEach(function(a){n+=S.ach[a.id]||0;});return n;}
+function achCheck(silent){
+  var got=[];
+  ACH.forEach(function(a){
+    var l=S.ach[a.id]||0,v=a.v();
+    while(l<5&&v>=a.th[l]){l++;got.push(a.e+' '+a.n+' '+MED[l-1]+' '+MEDN[l-1]);}
+    S.ach[a.id]=l;
+  });
+  if(got.length&&!silent){
+    Snd.play('fanfare');
+    toast('🏆 Succès : '+got[0]+(got.length>1?' (et '+(got.length-1)+' autre'+(got.length>2?'s':'')+')':'')+' · +1 % de dépenses');
+    if(tabOpen==='ach')renderSheet();save();
+  }
+  return got.length;
+}
+function statSale(c){
+  S.st.sold++;
+  if(S.wx.cur==='rain'||S.wx.cur==='snow')S.st.rain++;
+  var h=S.clock/60;if(h>=22||h<5)S.st.night++;
+  if(Snd.hit())S.st.hit++;
+}
+function statServed(c){
+  if(c.ctype==='rider')S.st.riders++;
+  else if(c.ctype)S.st.nbc++;
+}
+function statEarn(a){
+  var d=Math.floor(S.dn);
+  if(S.st.day!==d){S.st.best=Math.max(S.st.best,S.st.de);S.st.de=0;S.st.day=d;}
+  S.st.de+=a;
+}
+function renderAch(){
+  var t=achTotal(),h='<div class="h3">🏆 Succès · '+t+' / 100</div>';
+  h+='<div class="note">Chaque niveau de succès donne +1 % de dépenses aux clients, pour toujours (actuellement +'+t+' %).</div>';
+  ACH.forEach(function(a){
+    var l=S.ach[a.id]||0,v=a.v(),nx=a.th[Math.min(l,4)],pv=a.th[l-1]||0;
+    var pr=l>=5?1:clamp((v-0)/nx,0,1);
+    var stars='';for(var i=0;i<5;i++)stars+=i<l?MED[i]:'▫️';
+    var goal=l>=5?'Toutes les étapes réussies !':a.f.replace('{n}',a.raw?nx:fmt(nx))+' · '+(a.raw?v:fmt(Math.floor(v)))+' / '+(a.raw?nx:fmt(nx));
+    h+='<div class="row"><div class="meta"><b>'+a.e+' '+a.n+'</b><span>'+goal+'</span><div class="pbar"><i style="width:'+Math.round(pr*100)+'%"></i></div></div><div class="medals">'+stars+'</div></div>';
+  });
+  return h;
+}
+var achSec=0;
+function featUpdate(dt){
+  jobsUpdate(dt);
+  achSec+=dt;
+  if(achSec>=1){achSec=0;siteTick();jobsTick();achCheck(false);}
 }
 /* ---------- Démarrage ---------- */
 var loaded=load();
