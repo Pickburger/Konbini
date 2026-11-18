@@ -4080,6 +4080,13 @@ function rebuildNb(){
     var p=plotOf(k),g=new T.Group();g.position.set(p.x,0,p.z);nbG.add(g);
     if(S.nbc[k]){noSale=true;NBB[k](g,S.nb[k]);noSale=false;bSite(g,k);}
     else NBB[k](g,S.nb[k]);
+    if(S.nb[k]===0&&!S.nbc[k]){
+      bx(g,p.w-0.3,0.04,p.d-0.3,groundMat('#6fa64a'),0,0,0);
+      var rr=mulberry(k.length*31+7);
+      for(var q=0;q<10;q++)bx(g,0.25,0.18+rr()*0.15,0.25,FOL[q%3],(rr()-0.5)*(p.w-1.2),0.04,(rr()-0.5)*(p.d-1.2));
+      for(var fx=-p.w/2+0.3;fx<=p.w/2-0.3;fx+=1.2)bx(g,0.05,0.4,0.05,'#8a8a84',fx,0.03,p.d/2-0.2);
+      mergeStatic(g);
+    }
   });
   buildTrain();buildAmb();
 }
@@ -4396,11 +4403,112 @@ function buildEnv(){
     for(var q=0;q<ponds.length;q++){var p=ponds[q];var ex=(x-p[0])/(p[2]+2.5),ez=(z-p[1])/(p[3]+2.5);if(ex*ex+ez*ez<1)return true;}
     return false;
   }
+  /* ---------- Quartiers résidentiels qui remplissent les vides ---------- */
+  var fg=new T.Group(),lots=[],GHM=new T.MeshLambertMaterial({color:'#e8f2f6',transparent:true,opacity:0.6});
+  var WALLS=['#f1e6cf','#e3d3b8','#d9e6d3','#f2d9c4','#e8e0f0','#f4efc9','#dfe3e6','#efe3dc'],ROOFS=['#c4693f','#4a6fa5','#7a5a9a','#2f7a5f','#c0392b','#3a6e8f','#5b5f66','#8a4b2f'];
+  var AWN=['#e94b4b','#2f7ac0','#f2c94c','#2f9e6a','#f08a24'];
+  function pk(a){return a[Math.floor(r()*a.length)];}
+  function L(cx,cz,ro,w,h,d,mat,ox,y,oz){
+    var c=Math.cos(ro),s=Math.sin(ro),m=bx(fg,w,h,d,mat,cx+ox*c+oz*s,y,cz-ox*s+oz*c);m.rotation.y=ro;return m;
+  }
+  function lotHouse(cx,cz,ro,big){
+    var wc=pk(WALLS),rc=pk(ROOFS),h=big?1.7:0.95;
+    L(cx,cz,ro,2.8,0.03,2.8,groundMat('#9bc77a'),0,0,0);
+    L(cx,cz,ro,1.8,h,1.5,wc,0,0.03,-0.35);
+    L(cx,cz,ro,2.0,0.16,1.7,rc,0,h+0.03,-0.35);L(cx,cz,ro,1.4,0.16,1.1,rc,0,h+0.19,-0.35);
+    L(cx,cz,ro,0.34,0.62,0.05,'#6b4a2b',-0.45,0.03,0.42);L(cx,cz,ro,0.44,0.32,0.05,winMat,0.4,0.42,0.42);
+    if(big)L(cx,cz,ro,0.44,0.32,0.05,winMat,-0.1,1.15,0.42);
+    L(cx,cz,ro,0.44,0.32,0.05,winMat,-0.4,0.42,-1.12);L(cx,cz,ro,0.44,0.32,0.05,winMat,0.4,0.42,-1.12);
+    L(cx,cz,ro,0.05,0.32,0.4,winMat,0.92,0.42,-0.35);L(cx,cz,ro,0.05,0.32,0.4,winMat,-0.92,0.42,-0.35);
+    if(big){L(cx,cz,ro,0.44,0.32,0.05,winMat,0,1.15,-1.12);L(cx,cz,ro,0.05,0.32,0.4,winMat,0.92,1.15,-0.35);L(cx,cz,ro,0.05,0.32,0.4,winMat,-0.92,1.15,-0.35);}
+    if(r()<0.6){for(var f=-1.3;f<=1.31;f+=0.52)L(cx,cz,ro,0.06,0.32,0.06,'#f4f4f4',f,0.03,1.3);L(cx,cz,ro,2.7,0.05,0.04,'#f4f4f4',0,0.3,1.3);}
+    if(r()<0.5){L(cx,cz,ro,0.3,0.5,0.3,'#7a5a3a',0.95,0.03,0.75);L(cx,cz,ro,0.7,0.6,0.7,FOL[Math.floor(r()*3)],0.95,0.5,0.75);}
+    if(r()<0.35)L(cx,cz,ro,0.5,0.35,0.3,'#4a6fa5',-1.05,0.03,0.8);
+  }
+  function lotApt(cx,cz,ro){
+    var wc=pk(['#e8e4dc','#d7dde3','#efe6d6','#cfd6cc']),fl=2+Math.floor(r()*3),H=fl*0.8;
+    L(cx,cz,ro,2.9,0.03,2.9,groundMat('#c9ccc8'),0,0,0);
+    L(cx,cz,ro,2.5,H,1.7,wc,0,0.03,-0.3);L(cx,cz,ro,2.6,0.1,1.8,'#7b8088',0,H+0.03,-0.3);
+    for(var k=0;k<fl;k++){var y=0.3+k*0.8;
+      for(var q=-0.8;q<=0.81;q+=0.8){L(cx,cz,ro,0.5,0.34,0.04,winMat,q,y,0.56);L(cx,cz,ro,0.5,0.34,0.04,winMat,q,y,-1.16);}
+      L(cx,cz,ro,0.04,0.34,0.5,winMat,1.26,y,-0.3);L(cx,cz,ro,0.04,0.34,0.5,winMat,-1.26,y,-0.3);
+      if(k>0)L(cx,cz,ro,2.5,0.06,0.3,'#bfc4c9',0,y-0.12,0.7),L(cx,cz,ro,2.5,0.22,0.03,'#9aa1a8',0,y-0.06,0.85);
+    }
+    L(cx,cz,ro,0.5,0.6,0.05,'#5a4632',0.95,0.03,0.56);
+    for(var b=0;b<3;b++)L(cx,cz,ro,0.06,0.25,0.4,pk(AWN),-1.0+b*0.18,0.03,1.05);
+  }
+  function lotShop(cx,cz,ro){
+    var wc=pk(WALLS),ac=pk(AWN);
+    L(cx,cz,ro,2.9,0.03,2.9,groundMat('#cfcac0'),0,0,0);
+    L(cx,cz,ro,2.3,1.15,1.6,wc,0,0.03,-0.35);L(cx,cz,ro,2.4,0.12,1.7,'#5b5f66',0,1.18,-0.35);
+    L(cx,cz,ro,2.3,0.08,0.55,ac,0,0.95,0.68);L(cx,cz,ro,2.3,0.12,0.05,ac,0,0.85,0.95);
+    L(cx,cz,ro,1.5,0.5,0.04,winMat,-0.25,0.3,0.46);L(cx,cz,ro,0.5,0.3,0.04,winMat,0.5,0.6,-1.16);L(cx,cz,ro,0.04,0.3,0.5,winMat,1.16,0.6,-0.35);L(cx,cz,ro,0.04,0.3,0.5,winMat,-1.16,0.6,-0.35);L(cx,cz,ro,0.4,0.65,0.05,'#5a4632',0.8,0.03,0.46);
+    L(cx,cz,ro,1.4,0.26,0.05,pk(['#ffffff','#fff3c4','#ffe1e1']),0,1.25,0.47);
+    L(cx,cz,ro,0.36,0.7,0.3,pk(['#e94b4b','#2f7ac0','#f4f4f4']),1.25,0.03,0.9);L(cx,cz,ro,0.24,0.3,0.02,winMat,1.25,0.35,1.06);
+  }
+  function lotPark(cx,cz,ro){
+    L(cx,cz,ro,2.9,0.03,2.9,groundMat('#8fcf6e'),0,0,0);
+    L(cx,cz,ro,0.6,0.08,2.6,groundMat('#d8cdb8'),0,0.01,0);
+    [[-0.9,-0.8],[0.9,0.7],[-0.9,0.9]].forEach(function(t){L(cx,cz,ro,0.22,0.55,0.22,'#7a5a3a',t[0],0.03,t[1]);L(cx,cz,ro,0.8,0.7,0.8,FOL[Math.floor(r()*3)],t[0],0.55,t[1]);});
+    L(cx,cz,ro,0.7,0.08,0.25,'#8a6a43',0.75,0.25,-0.6);L(cx,cz,ro,0.06,0.22,0.2,'#555',0.45,0.03,-0.6);L(cx,cz,ro,0.06,0.22,0.2,'#555',1.05,0.03,-0.6);
+  }
+  function lotField(cx,cz,ro){
+    L(cx,cz,ro,2.9,0.03,2.9,groundMat('#9a7b52'),0,0,0);
+    for(var q=-1.1;q<=1.11;q+=0.45)L(cx,cz,ro,0.22,0.12,2.6,FOL[Math.floor(r()*3)],q,0.03,0);
+    if(r()<0.5){L(cx,cz,ro,0.9,0.7,1.4,GHM,1.0,0.03,-0.5);}
+  }
+  function lotParking(cx,cz,ro){
+    L(cx,cz,ro,2.9,0.03,2.9,groundMat('#5c636a'),0,0,0);
+    for(var q=-1.2;q<=1.21;q+=1.2)L(cx,cz,ro,0.06,0.02,1.6,'#f4f4f4',q,0.035,-0.4);
+    var n=1+Math.floor(r()*2);
+    for(var k=0;k<n;k++){var ox=-0.6+k*1.2,cc=pk(['#e94b4b','#3a7bd5','#f2c94c','#e8e8e8','#2f3542','#6bc48b']);L(cx,cz,ro,0.68,0.32,1.45,cc,ox,0.09,-0.4);L(cx,cz,ro,0.6,0.29,0.8,cc,ox,0.41,-0.47);L(cx,cz,ro,0.62,0.15,0.6,winMat,ox,0.44,-0.47);}
+    L(cx,cz,ro,0.36,0.7,0.3,'#2f7ac0',1.2,0.03,1.1);
+  }
+  function faceRoad(x,z){
+    var c=[[Math.abs(z-ZB),Math.PI],[Math.abs(z-ZF),0],[Math.abs(x-XL),-Math.PI/2],[Math.abs(x-XR),Math.PI/2]];
+    if(x>XL&&x<XR){c.push([Math.abs(z-(D+4.35)),z>D+4.35?Math.PI:0]);}
+    c.sort(function(a,b){return a[0]-b[0];});
+    var ro=c[0][1];
+    if(z<ZB||z>ZF||x<XL||x>XR)ro+=Math.PI;
+    return ro;
+  }
+  for(var gx=XL-12.5;gx<XR+12.6;gx+=3.4){
+    for(var gz=ZB-12.5;gz<ZF+12.6;gz+=3.4){
+      var ins=gx>XL&&gx<XR&&gz>ZB&&gz<ZF,ok=true;
+      var dout=Math.max(XL-gx,gx-XR,ZB-gz,gz-ZF,0);
+      if(!ins&&dout>11)continue;
+      for(var a=-1;a<=1&&ok;a++)for(var b=-1;b<=1&&ok;b++){if(blocked(gx+a*1.55,gz+b*1.55))ok=false;}
+      if(!ok)continue;
+      var rr=r();
+      if(!ins&&rr<0.25)continue;
+      var ro=faceRoad(gx,gz),k=r();
+      if(ins){
+        if(k<0.34)lotHouse(gx,gz,ro,false);else if(k<0.5)lotHouse(gx,gz,ro,true);else if(k<0.66)lotApt(gx,gz,ro);
+        else if(k<0.8)lotShop(gx,gz,ro);else if(k<0.88)lotParking(gx,gz,ro);else if(k<0.95)lotPark(gx,gz,ro);else lotField(gx,gz,ro);
+      }else{
+        if(k<0.45)lotHouse(gx,gz,ro,false);else if(k<0.65)lotHouse(gx,gz,ro,true);else if(k<0.85)lotField(gx,gz,ro);else if(k<0.93)lotPark(gx,gz,ro);else lotApt(gx,gz,ro);
+      }
+      lots.push([gx,gz]);
+    }
+  }
+  mergeStatic(fg);fg.children.forEach(function(m){m.receiveShadow=true;});envG.add(fg);
+  function inLot(x,z){for(var q=0;q<lots.length;q++){if(Math.abs(x-lots[q][0])<1.9&&Math.abs(z-lots[q][1])<1.9)return true;}return false;}
+  /* poteaux électriques et fils, à l'extérieur des rues de ceinture */
+  var pp=[],wires=[];
+  function poleLine(pts){for(var q=0;q<pts.length;q++){var p=pts[q];pp.push(p);if(q>0){var o=pts[q-1];[-0.25,0,0.25].forEach(function(dy,wi){var off=wi-1;wires.push(o[0]+off*o[2],2.35+dy*0.2,o[1]+off*o[3],p[0]+off*p[2],2.35+dy*0.2,p[1]+off*p[3]);});}}}
+  var line=[];for(x=XL+1;x<XR-1;x+=6)line.push([x,ZB-2.0,0,0.25]);poleLine(line);
+  line=[];for(x=XL+1;x<XR-1;x+=6)line.push([x,ZF+2.0,0,0.25]);poleLine(line);
+  line=[];for(z=ZB+1;z<ZF-1;z+=6){if(Math.abs(z-D-16)<1.5)continue;line.push([XL-2.0,z,0.25,0]);}poleLine(line);
+  line=[];for(z=ZB+1;z<ZF-1;z+=6){if(Math.abs(z-D-16)<1.5)continue;line.push([XR+2.0,z,0.25,0]);}poleLine(line);
+  inst(new T.CylinderGeometry(0.05,0.06,2.6,5),M('#8d8a83'),pp.map(function(p){return [p[0],1.3,p[1],1,1,1];}));
+  inst(new T.BoxGeometry(0.7,0.05,0.07),M('#6b6862'),pp.map(function(p){return [p[0],2.4,p[1],1,1,1,p[2]?Math.PI/2:0];}));
+  var wg=new T.BufferGeometry();wg.setAttribute('position',new T.Float32BufferAttribute(wires,3));
+  envG.add(new T.LineSegments(wg,new T.LineBasicMaterial({color:'#2b2b2b'})));
   var tr=[],br=[[],[],[]],pn=[],fl=[[],[],[]];
   for(x=-72;x<W+78;x+=3.1){
     for(z=-58;z<D+64;z+=3.1){
       var px=x+r()*2.4,pz=z+r()*2.4,roll=r(),kind=r(),sc=r();
-      if(blocked(px,pz))continue;
+      if(blocked(px,pz)||inLot(px,pz))continue;
       var inside=px>X0&&px<X1&&pz>ZB&&pz<ZF;
       if(roll>(inside?0.2:0.78)){
         if(inside&&roll>0.78){var fi=Math.floor(kind*3);fl[fi].push([px,0.07,pz,1,1,1]);fl[fi].push([px+0.3,0.07,pz+0.2,1,1,1]);}
